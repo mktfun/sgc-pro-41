@@ -1,3 +1,4 @@
+
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -197,11 +198,13 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
       
       // Validação básica
       if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1920 && year <= new Date().getFullYear()) {
-        const date = new Date(year, month - 1, day);
+        // Criar a data sem considerar fuso horário
+        const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
         
-        // Verifica se a data é válida (não foi ajustada pelo JS)
-        if (date.getDate() === day && date.getMonth() === month - 1 && date.getFullYear() === year) {
-          form.setValue('birthDate', format(date, 'yyyy-MM-dd'));
+        // Validar se a data é válida criando um objeto Date e verificando se não foi ajustada
+        const testDate = new Date(year, month - 1, day);
+        if (testDate.getDate() === day && testDate.getMonth() === month - 1 && testDate.getFullYear() === year) {
+          form.setValue('birthDate', dateString);
         }
       }
     }
@@ -327,7 +330,9 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
                           field.onChange('');
                           return;
                         }
-                        field.onChange(format(day, 'yyyy-MM-dd'));
+                        // Usar o mesmo formato sem considerar fuso horário
+                        const dateString = `${day.getFullYear()}-${(day.getMonth() + 1).toString().padStart(2, '0')}-${day.getDate().toString().padStart(2, '0')}`;
+                        field.onChange(dateString);
                       }}
                       disabled={(date) =>
                         date > new Date() || date < new Date("1900-01-01")
