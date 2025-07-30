@@ -151,6 +151,13 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
   const cpfCnpjValue = form.watch('cpfCnpj');
   const documentValidation = getDocumentValidation(cpfCnpjValue || '');
 
+  // Determine the mask based on input length
+  const getMask = (value: string) => {
+    if (!value) return '999.999.999-99';
+    const cleanValue = value.replace(/\D/g, '');
+    return cleanValue.length > 11 ? '99.999.999/9999-99' : '999.999.999-99';
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white">Dados Pessoais</h3>
@@ -186,7 +193,7 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
                 <div className="relative">
                   <MaskedInput
                     {...field}
-                    mask={field.value && field.value.replace(/\D/g, '').length > 11 ? '99.999.999/9999-99' : '999.999.999-99'}
+                    mask={getMask(field.value || '')}
                     placeholder="000.000.000-00 ou 00.000.000/0000-00"
                     className={cn(
                       "bg-black/20 border-white/20 text-white placeholder:text-white/50 pr-10",
