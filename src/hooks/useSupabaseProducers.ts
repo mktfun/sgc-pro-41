@@ -30,6 +30,8 @@ export function useSupabaseProducers() {
         name: producer.name,
         email: producer.email,
         phone: producer.phone,
+        cpfCnpj: producer.cpf_cnpj,
+        companyName: producer.company_name,
         brokerage_id: producer.brokerage_id,
         createdAt: producer.created_at,
       })) || [];
@@ -53,6 +55,8 @@ export function useSupabaseProducers() {
           name: producerData.name,
           email: producerData.email || null,
           phone: producerData.phone || null,
+          cpf_cnpj: producerData.cpfCnpj || null,
+          company_name: producerData.companyName || null,
           brokerage_id: producerData.brokerage_id,
         })
         .select()
@@ -80,6 +84,8 @@ export function useSupabaseProducers() {
           name: updates.name,
           email: updates.email,
           phone: updates.phone,
+          cpf_cnpj: updates.cpfCnpj,
+          company_name: updates.companyName,
           brokerage_id: updates.brokerage_id,
         })
         .eq('id', id)
