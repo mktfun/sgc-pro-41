@@ -2,6 +2,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { MaskedInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
 import { ClientFormData } from '@/schemas/clientSchema';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -148,14 +149,20 @@ const getDocumentValidation = (value: string) => {
 
 export function PersonalDataTab({ form }: PersonalDataTabProps) {
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const [isCNPJ, setIsCNPJ] = useState(false);
   const cpfCnpjValue = form.watch('cpfCnpj');
   const documentValidation = getDocumentValidation(cpfCnpjValue || '');
 
-  // Determine the mask based on input length
-  const getMask = (value: string) => {
-    if (!value) return '999.999.999-99';
-    const cleanValue = value.replace(/\D/g, '');
-    return cleanValue.length > 11 ? '99.999.999/9999-99' : '999.999.999-99';
+  // Determine the mask based on switch state
+  const getMask = () => {
+    return isCNPJ ? '99.999.999/9999-99' : '999.999.999-99';
+  };
+
+  // Handle switch change
+  const handleSwitchChange = (checked: boolean) => {
+    setIsCNPJ(checked);
+    // Clear the field when switching between CPF/CNPJ
+    form.setValue('cpfCnpj', '');
   };
 
   return (
@@ -183,47 +190,65 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="cpfCnpj"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-white">CPF/CNPJ</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <MaskedInput
-                    {...field}
-                    mask={getMask(field.value || '')}
-                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                    className={cn(
-                      "bg-black/20 border-white/20 text-white placeholder:text-white/50 pr-10",
-                      documentValidation === 'valid' && "border-green-500/50",
-                      documentValidation === 'invalid' && "border-red-500/50"
-                    )}
-                  />
-                  {documentValidation && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {documentValidation === 'valid' ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      )}
-                    </div>
-                  )}
+        <div className="md:col-span-2">
+          <FormField
+            control={form.control}
+            name="cpfCnpj"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between mb-2">
+                  <FormLabel className="text-white">
+                    {isCNPJ ? 'CNPJ' : 'CPF'}
+                  </FormLabel>
+                  <div className="flex items-center space-x-2">
+                    <span className={cn("text-sm", !isCNPJ ? "text-white" : "text-white/50")}>
+                      CPF
+                    </span>
+                    <Switch
+                      checked={isCNPJ}
+                      onCheckedChange={handleSwitchChange}
+                    />
+                    <span className={cn("text-sm", isCNPJ ? "text-white" : "text-white/50")}>
+                      CNPJ
+                    </span>
+                  </div>
                 </div>
-              </FormControl>
-              {documentValidation === 'invalid' && cpfCnpjValue && (
-                <p className="text-sm text-red-400 mt-1">CPF ou CNPJ inválido</p>
-              )}
-              {documentValidation === 'valid' && (
-                <p className="text-sm text-green-400 mt-1">
-                  {cpfCnpjValue?.replace(/\D/g, '').length === 11 ? 'CPF válido' : 'CNPJ válido'}
-                </p>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormControl>
+                  <div className="relative">
+                    <MaskedInput
+                      {...field}
+                      mask={getMask()}
+                      placeholder={isCNPJ ? "00.000.000/0000-00" : "000.000.000-00"}
+                      className={cn(
+                        "bg-black/20 border-white/20 text-white placeholder:text-white/50 pr-10",
+                        documentValidation === 'valid' && "border-green-500/50",
+                        documentValidation === 'invalid' && "border-red-500/50"
+                      )}
+                    />
+                    {documentValidation && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {documentValidation === 'valid' ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+                {documentValidation === 'invalid' && cpfCnpjValue && (
+                  <p className="text-sm text-red-400 mt-1">{isCNPJ ? 'CNPJ inválido' : 'CPF inválido'}</p>
+                )}
+                {documentValidation === 'valid' && (
+                  <p className="text-sm text-green-400 mt-1">
+                    {isCNPJ ? 'CNPJ válido' : 'CPF válido'}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
