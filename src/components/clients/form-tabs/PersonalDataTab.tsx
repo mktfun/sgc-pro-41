@@ -165,6 +165,28 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
     form.setValue('cpfCnpj', '');
   };
 
+  // Handle manual date input
+  const handleDateInputChange = (value: string) => {
+    // Validate date format (DD/MM/YYYY)
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const match = value.match(dateRegex);
+    
+    if (match) {
+      const [, day, month, year] = match;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      // Check if it's a valid date
+      if (date.getDate() == parseInt(day) && 
+          date.getMonth() == parseInt(month) - 1 && 
+          date.getFullYear() == parseInt(year)) {
+        // Convert to ISO format for storage
+        form.setValue('birthDate', format(date, 'yyyy-MM-dd'));
+      }
+    } else if (value === '') {
+      form.setValue('birthDate', '');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white">Dados Pessoais</h3>
@@ -256,73 +278,61 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel className="text-white">Data de Nascimento</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
+              <div className="flex gap-2">
+                <FormControl>
+                  <MaskedInput
+                    mask="99/99/9999"
+                    placeholder="DD/MM/AAAA"
+                    className="bg-black/20 border-white/20 text-white placeholder:text-white/50 flex-1"
+                    value={field.value ? format(new Date(field.value), "dd/MM/yyyy") : ''}
+                    onChange={(e) => handleDateInputChange(e.target.value)}
+                  />
+                </FormControl>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal bg-black/20 border-white/20 text-white hover:bg-black/30",
-                        !field.value && "text-white/50"
-                      )}
+                      size="sm"
+                      className="bg-black/20 border-white/20 text-white hover:bg-black/30 px-3"
                     >
-                      {field.value ? (
-                        format(new Date(field.value), "dd/MM/yyyy")
-                      ) : (
-                        <span>Selecione a data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      <CalendarIcon className="h-4 w-4" />
                     </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={(day: Date | undefined) => {
-                      // Se o usuário limpou a data, a gente limpa também.
-                      if (!day) {
-                        field.onChange('');
-                        return;
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined}
+                      onSelect={(day: Date | undefined) => {
+                        if (!day) {
+                          field.onChange('');
+                          return;
+                        }
+
+                        const timezoneOffsetInMinutes = day.getTimezoneOffset();
+                        const correctedDate = new Date(day.getTime() + (timezoneOffsetInMinutes * 60000));
+                        field.onChange(format(correctedDate, 'yyyy-MM-dd'));
+                      }}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
                       }
-
-                      // --- AQUI COMEÇA O EXORCISMO ANTI-FUSO HORÁRIO ---
-
-                      // 1. O 'day' que recebemos aqui é uma data local (Ex: 11/07/2025 00:00:00 GMT-0300)
-                      // 2. Pegamos o offset do fuso horário do navegador em minutos. 
-                      //    Para o Brasil (-3h), isso retornará 180.
-                      const timezoneOffsetInMinutes = day.getTimezoneOffset();
-
-                      // 3. Criamos uma nova data, somando o offset em milissegundos.
-                      //    Isso efetivamente "cancela" o fuso horário, ajustando a data para 
-                      //    o dia correto às 00:00:00 no fuso UTC.
-                      const correctedDate = new Date(day.getTime() + (timezoneOffsetInMinutes * 60000));
-
-                      // 4. Salvamos no nosso estado a data JÁ CORRIGIDA no formato ISO.
-                      field.onChange(format(correctedDate, 'yyyy-MM-dd'));
-
-                      // --- FIM DO EXORCISMO ---
-                    }}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                    month={calendarMonth}
-                    onMonthChange={setCalendarMonth}
-                    fromYear={1920}
-                    toYear={new Date().getFullYear()}
-                    components={{
-                      Caption: ({ displayMonth }) => (
-                        <CalendarCaption 
-                          displayMonth={displayMonth} 
-                          onMonthChange={setCalendarMonth} 
-                        />
-                      ),
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                      month={calendarMonth}
+                      onMonthChange={setCalendarMonth}
+                      fromYear={1920}
+                      toYear={new Date().getFullYear()}
+                      components={{
+                        Caption: ({ displayMonth }) => (
+                          <CalendarCaption 
+                            displayMonth={displayMonth} 
+                            onMonthChange={setCalendarMonth} 
+                          />
+                        ),
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <FormMessage />
             </FormItem>
           )}
