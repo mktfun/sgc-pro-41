@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, CheckCircle, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PersonalDataTabProps {
   form: UseFormReturn<ClientFormData>;
@@ -150,8 +150,20 @@ const getDocumentValidation = (value: string) => {
 export function PersonalDataTab({ form }: PersonalDataTabProps) {
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [isCNPJ, setIsCNPJ] = useState(false);
+  const [dateInputValue, setDateInputValue] = useState('');
   const cpfCnpjValue = form.watch('cpfCnpj');
+  const birthDateValue = form.watch('birthDate');
   const documentValidation = getDocumentValidation(cpfCnpjValue || '');
+
+  // Sync date input value with form value
+  useEffect(() => {
+    if (birthDateValue) {
+      const date = new Date(birthDateValue);
+      setDateInputValue(format(date, 'dd/MM/yyyy'));
+    } else {
+      setDateInputValue('');
+    }
+  }, [birthDateValue]);
 
   // Determine the mask based on switch state
   const getMask = () => {
@@ -167,7 +179,9 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
 
   // Handle manual date input
   const handleDateInputChange = (value: string) => {
-    if (value === '') {
+    setDateInputValue(value);
+    
+    if (value === '' || value.replace(/\D/g, '').length === 0) {
       form.setValue('birthDate', '');
       return;
     }
@@ -175,7 +189,7 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
     // Remove qualquer caractere que não seja número
     const cleanValue = value.replace(/\D/g, '');
     
-    // Verifica se tem pelo menos 8 dígitos (DDMMYYYY)
+    // Verifica se tem exatamente 8 dígitos (DDMMYYYY)
     if (cleanValue.length === 8) {
       const day = parseInt(cleanValue.substr(0, 2));
       const month = parseInt(cleanValue.substr(2, 2));
@@ -290,7 +304,7 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
                     mask="99/99/9999"
                     placeholder="DD/MM/AAAA"
                     className="bg-black/20 border-white/20 text-white placeholder:text-white/50 flex-1"
-                    value={field.value ? format(new Date(field.value), "dd/MM/yyyy") : ''}
+                    value={dateInputValue}
                     onChange={(e) => handleDateInputChange(e.target.value)}
                   />
                 </FormControl>
