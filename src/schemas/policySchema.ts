@@ -13,7 +13,7 @@ export const policyFormSchema = z.object({
   expirationDate: z.string().optional(),
   producerId: z.string().optional(),
   brokerageId: z.string().optional(), // ✅ Corrigido: string para compatibilidade com Select
-  status: z.enum(['Orçamento', 'Ativa', 'Cancelada', 'Renovada']), // ✅ Adicionado 'Renovada'
+  status: z.enum(['Orçamento', 'Aguardando Apólice', 'Ativa', 'Cancelada', 'Renovada']), // ✅ Adicionado 'Aguardando Apólice'
   isBudget: z.boolean().optional(),
   automaticRenewal: z.boolean(), // ✅ CORRIGIDO: Obrigatório, sem .optional()
 }).superRefine((data, ctx) => {
