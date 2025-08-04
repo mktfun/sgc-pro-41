@@ -8,7 +8,7 @@ import { RenewalScheduleStatus } from './RenewalScheduleStatus';
 interface AutoRenewalIndicatorProps {
   automaticRenewal: boolean;
   expirationDate: string;
-  status: string;
+  status: 'Orçamento' | 'Aguardando Apólice' | 'Ativa' | 'Cancelada' | 'Renovada';
   size?: 'sm' | 'md';
 }
 

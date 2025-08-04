@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
 import { PolicyModal } from '@/components/policies/PolicyModal';
@@ -217,6 +216,7 @@ export default function Policies() {
                     <AutoRenewalIndicator 
                       automaticRenewal={policy.automaticRenewal}
                       expirationDate={policy.expirationDate}
+                      status={policy.status}
                     />
                     {isExpiringSoon && policy.status === 'Ativa' && (
                       <Badge variant="destructive" className="animate-pulse">

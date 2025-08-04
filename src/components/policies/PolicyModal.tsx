@@ -137,6 +137,7 @@ export function PolicyModal({ policy, isOpen, onClose, onEdit, onRenew }: Policy
                 <AutoRenewalIndicator 
                   automaticRenewal={policy.automaticRenewal}
                   expirationDate={policy.expirationDate}
+                  status={policy.status}
                   size="md"
                 />
               </div>
