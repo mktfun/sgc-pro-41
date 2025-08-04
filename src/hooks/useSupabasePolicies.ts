@@ -15,7 +15,13 @@ export function useSupabasePolicies() {
 
       const { data, error } = await supabase
         .from('apolices')
-        .select('*')
+        .select(`
+          *,
+          companies (
+            id,
+            name
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -48,7 +54,11 @@ export function useSupabasePolicies() {
         userId: policy.user_id,
         isBudget: policy.status === 'Orçamento',
         bonus_class: policy.bonus_class,
-        automaticRenewal: policy.automatic_renewal
+        automaticRenewal: policy.automatic_renewal,
+        companies: policy.companies ? {
+          id: policy.companies.id,
+          name: policy.companies.name
+        } : undefined
       })) || [];
 
       console.log('✅ Apólices carregadas:', formattedPolicies.length);

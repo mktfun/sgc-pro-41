@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
 import { PolicyModal } from '@/components/policies/PolicyModal';
@@ -233,7 +234,7 @@ export default function Policies() {
                     
                     <div>
                       <p className="text-slate-400">Seguradora</p>
-                      <p className="text-white">{policy.insuranceCompany || 'Não especificada'}</p>
+                      <p className="text-white">{policy.companies?.name || 'Não especificada'}</p>
                     </div>
                     
                     <div>

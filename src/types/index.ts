@@ -58,6 +58,11 @@ export interface Policy {
   bonus_class?: string; // Classe de bônus para renovações
   // 🆕 CAMPO PARA CONTROLE DE RENOVAÇÃO AUTOMÁTICA
   automaticRenewal: boolean; // ✅ Corrigido: obrigatório (não opcional)
+  // 🆕 NOVO CAMPO PARA EXPANDIR RELAÇÃO COM SEGURADORAS
+  companies?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Task {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -211,7 +212,7 @@ export function PolicyModal({ policy, isOpen, onClose, onEdit, onRenew }: Policy
                     <Building2 className="w-4 h-4" />
                     Seguradora & Produto
                   </h3>
-                  <p className="text-white font-medium">{policy.insuranceCompany || 'Não especificada'}</p>
+                  <p className="text-white font-medium">{policy.companies?.name || 'Não especificada'}</p>
                   <p className="text-slate-400 text-sm mt-1">{policy.type || 'Ramo não especificado'}</p>
                   <p className="text-slate-300 text-sm mt-2">
                     <strong>Bem Segurado:</strong> {policy.insuredAsset}
