@@ -1,4 +1,3 @@
-
 export function formatDate(dateString: string): string {
   if (!dateString) return '';
   
@@ -127,4 +126,15 @@ export function isInMonth(dateString: string, monthsFromNow: number = 0): boolea
   
   return targetDate.getMonth() === referenceDate.getMonth() && 
          targetDate.getFullYear() === referenceDate.getFullYear();
+}
+
+export function getCurrentMonthRange(): { from: Date; to: Date } {
+  const hoje = new Date();
+  const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const ultimoDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  
+  return {
+    from: primeiroDiaDoMes,
+    to: ultimoDiaDoMes
+  };
 }

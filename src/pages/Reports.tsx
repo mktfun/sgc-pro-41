@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
-import { startOfYear } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { getCurrentMonthRange } from '@/utils/dateUtils';
 import { VisaoGeralCarteira } from '@/components/reports/VisaoGeralCarteira';
 import { RelatorioFaturamento } from '@/components/reports/RelatorioFaturamento';
 import { FiltrosAvancados } from '@/components/reports/FiltrosAvancados';
@@ -26,7 +25,7 @@ interface FiltrosGlobais {
 
 export default function Reports() {
   const [filtrosGlobais, setFiltrosGlobais] = useState<FiltrosGlobais>({
-    intervalo: { from: startOfYear(new Date()), to: new Date() },
+    intervalo: getCurrentMonthRange(),
     seguradoraIds: [],
     ramos: [],
     produtorIds: [],

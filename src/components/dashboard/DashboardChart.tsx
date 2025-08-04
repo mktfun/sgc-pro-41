@@ -1,13 +1,15 @@
+
 import { AppCard } from '@/components/ui/app-card';
 import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
 import { useState, useMemo } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { startOfMonth, format, differenceInDays } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { useSupabaseTransactions } from '@/hooks/useSupabaseTransactions';
 import { useSupabaseTransactionTypes } from '@/hooks/useSupabaseTransactionTypes';
 import { Loader2 } from 'lucide-react';
+import { getCurrentMonthRange } from '@/utils/dateUtils';
 import { 
   BarChart as BarChartIcon,
   LineChart as LineChartIcon
@@ -16,7 +18,7 @@ import {
 export function DashboardChart() {
   // Estado completo do gráfico
   const [opcoesGrafico, setOpcoesGrafico] = useState({
-    intervalo: { from: startOfMonth(new Date()), to: new Date() } as DateRange,
+    intervalo: getCurrentMonthRange() as DateRange,
     series: ['GANHO', 'PERDA'] as string[],
     tipoGrafico: 'bar' as 'bar' | 'line',
   });
