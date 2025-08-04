@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
 import { PolicyModal } from '@/components/policies/PolicyModal';
@@ -12,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSupabaseProducers } from '@/hooks/useSupabaseProducers';
 import { AutoRenewalIndicator } from '@/components/policies/AutoRenewalIndicator';
 
-export function Policies() {
+export default function Policies() {
   const { clients } = useClients();
   const { producers } = useSupabaseProducers();
   const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
@@ -75,7 +76,6 @@ export function Policies() {
         <div>
           <Label htmlFor="status" className="text-slate-300">Status</Label>
           <Select
-            id="status"
             value={filters.status}
             onValueChange={(value) => setFilters({ ...filters, status: value })}
           >
@@ -97,7 +97,6 @@ export function Policies() {
         <div>
           <Label htmlFor="insuranceCompany" className="text-slate-300">Seguradora</Label>
           <Select
-            id="insuranceCompany"
             value={filters.insuranceCompany}
             onValueChange={(value) => setFilters({ ...filters, insuranceCompany: value })}
           >
@@ -117,7 +116,6 @@ export function Policies() {
         <div>
           <Label htmlFor="producer" className="text-slate-300">Produtor</Label>
           <Select
-            id="producer"
             value={filters.producerId}
             onValueChange={(value) => setFilters({ ...filters, producerId: value })}
           >
@@ -137,7 +135,6 @@ export function Policies() {
         <div>
           <Label htmlFor="period" className="text-slate-300">Vencimento</Label>
           <Select
-            id="period"
             value={filters.period}
             onValueChange={(value) => setFilters({ ...filters, period: value })}
           >
