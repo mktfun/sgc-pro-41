@@ -25,7 +25,8 @@ export function TesteParcelas() {
         status: 'Ativa',
         expirationDate: '2025-12-31',
         startDate: '2025-01-01',
-        userId: 'test-user-id'
+        userId: 'test-user-id',
+        automaticRenewal: true // ✅ ADICIONADO: Campo obrigatório
       });
 
       console.log('✅ Apólice de teste criada com sucesso!');

@@ -109,6 +109,7 @@ export const useSupabaseRenewals = (
           producerId: item.producer_id,
           brokerageId: item.brokerage_id,
           userId: item.user_id,
+          automaticRenewal: item.automatic_renewal || true, // ✅ ADICIONADO: Campo obrigatório do banco
           // Dados adicionais para a UI
           clientName: item.clientes?.name || 'Cliente não encontrado',
           diasParaVencer: daysUntilExpiration
