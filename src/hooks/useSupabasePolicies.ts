@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -48,7 +47,8 @@ export function useSupabasePolicies() {
         startDate: policy.start_date,
         userId: policy.user_id,
         isBudget: policy.status === 'Orçamento',
-        bonus_class: policy.bonus_class
+        bonus_class: policy.bonus_class,
+        automaticRenewal: policy.automatic_renewal
       })) || [];
 
       console.log('✅ Apólices carregadas:', formattedPolicies.length);
@@ -81,7 +81,8 @@ export function useSupabasePolicies() {
             producer_id: policyData.producerId || null,
             brokerage_id: policyData.brokerageId || null,
             start_date: policyData.startDate || null,
-            bonus_class: policyData.bonus_class || null
+            bonus_class: policyData.bonus_class || null,
+            automatic_renewal: policyData.automaticRenewal ?? true
           },
         ])
         .select()
@@ -111,7 +112,8 @@ export function useSupabasePolicies() {
         startDate: data.start_date,
         userId: data.user_id,
         isBudget: data.status === 'Orçamento',
-        bonus_class: data.bonus_class
+        bonus_class: data.bonus_class,
+        automaticRenewal: data.automatic_renewal
       };
 
       return newPolicy;
@@ -161,6 +163,7 @@ export function useSupabasePolicies() {
       if (updates.brokerageId !== undefined) updateData.brokerage_id = updates.brokerageId;
       if (updates.startDate !== undefined) updateData.start_date = updates.startDate;
       if (updates.bonus_class !== undefined) updateData.bonus_class = updates.bonus_class;
+      if (updates.automaticRenewal !== undefined) updateData.automatic_renewal = updates.automaticRenewal;
 
       const { error } = await supabase
         .from('apolices')
@@ -206,7 +209,8 @@ export function useSupabasePolicies() {
               producerId: updatedPolicy.producer_id,
               brokerageId: updatedPolicy.brokerage_id,
               startDate: updatedPolicy.start_date,
-              bonus_class: updatedPolicy.bonus_class
+              bonus_class: updatedPolicy.bonus_class,
+              automaticRenewal: updatedPolicy.automatic_renewal
             };
 
             console.log('💰 [UPDATE] Gerando comissão para apólice ativada:', policy.policyNumber);
@@ -370,7 +374,8 @@ export function useSupabasePolicies() {
           producerId: updatedPolicy.producer_id,
           brokerageId: updatedPolicy.brokerage_id,
           startDate: updatedPolicy.start_date,
-          bonus_class: updatedPolicy.bonus_class
+          bonus_class: updatedPolicy.bonus_class,
+          automaticRenewal: updatedPolicy.automatic_renewal
         };
 
         console.log('💰 [CONVERT] Gerando comissão para conversão de orçamento:', policy.policyNumber);

@@ -1,4 +1,3 @@
-
 export interface Client {
   id: string;
   name: string;
@@ -57,6 +56,8 @@ export interface Policy {
   isBudget?: boolean; // Indica se é um orçamento
   // 🆕 CAMPO PARA CLASSE DE BÔNUS
   bonus_class?: string; // Classe de bônus para renovações
+  // 🆕 CAMPO PARA CONTROLE DE RENOVAÇÃO AUTOMÁTICA
+  automaticRenewal?: boolean; // Controla se a apólice deve gerar renovação automática
 }
 
 export interface Task {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Combobox } from '@/components/ui/combobox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit3, X } from 'lucide-react';
@@ -19,7 +21,7 @@ import { useSupabaseBrokerages } from '@/hooks/useSupabaseBrokerages';
 import { useSupabaseCompanyBranches } from '@/hooks/useSupabaseCompanyBranches';
 import { Separator } from '@/components/ui/separator';
 
-// Schema atualizado para permitir orçamentos sem seguradora/ramo e data de vencimento opcional
+// Schema atualizado para incluir renovação automática
 const policySchema = z.object({
   clientId: z.string().min(1, 'Cliente é obrigatório'),
   insuranceCompany: z.string().optional(),
@@ -29,10 +31,11 @@ const policySchema = z.object({
   premiumValue: z.number().min(0, 'Valor do prêmio deve ser positivo'),
   commissionRate: z.number().min(0).max(100, 'Taxa de comissão deve estar entre 0 e 100'),
   startDate: z.string().min(1, 'Data de início é obrigatória'),
-  expirationDate: z.string().optional(), // Agora opcional para permitir modo manual
+  expirationDate: z.string().optional(),
   status: z.enum(['Orçamento', 'Aguardando Apólice', 'Ativa']),
   producerId: z.string().optional(),
   brokerageId: z.string().optional(),
+  automaticRenewal: z.boolean().default(true),
 }).superRefine((data, ctx) => {
   if (data.status === 'Ativa' || data.status === 'Aguardando Apólice') {
     if (!data.insuranceCompany || data.insuranceCompany.trim() === '') {
@@ -69,7 +72,6 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
   const { companyBranches } = useSupabaseCompanyBranches();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
   const [isManualDueDate, setIsManualDueDate] = useState(false);
 
   const {
@@ -86,6 +88,7 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
       status: 'Orçamento',
       commissionRate: 20,
       insuredAsset: '',
+      automaticRenewal: true,
     }
   });
 
@@ -281,6 +284,18 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
               <p className="text-red-400 text-sm mt-1">{errors.commissionRate.message}</p>
             )}
           </div>
+        </div>
+
+        {/* Controle de Renovação Automática */}
+        <div className="flex items-center justify-between py-2">
+          <Label htmlFor="automaticRenewal" className="text-white">
+            Gerar Renovação Automática?
+          </Label>
+          <Switch
+            id="automaticRenewal"
+            checked={watch('automaticRenewal')}
+            onCheckedChange={(checked) => setValue('automaticRenewal', checked)}
+          />
         </div>
 
         {/* Datas */}

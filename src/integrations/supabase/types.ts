@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       apolices: {
         Row: {
+          automatic_renewal: boolean
           bonus_class: string | null
           brokerage_id: number | null
           client_id: string
@@ -40,6 +41,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          automatic_renewal?: boolean
           bonus_class?: string | null
           brokerage_id?: number | null
           client_id: string
@@ -64,6 +66,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          automatic_renewal?: boolean
           bonus_class?: string | null
           brokerage_id?: number | null
           client_id?: string
