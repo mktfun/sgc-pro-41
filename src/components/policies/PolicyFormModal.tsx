@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,6 +69,7 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
   const { companyBranches } = useSupabaseCompanyBranches();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [isManualDueDate, setIsManualDueDate] = useState(false);
 
   const {
