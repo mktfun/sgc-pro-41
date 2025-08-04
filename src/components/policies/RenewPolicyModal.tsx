@@ -169,7 +169,8 @@ export function RenewPolicyModal({ policy, isOpen, onClose, onSuccess }: RenewPo
         producerId: policy.producerId,
         brokerageId: policy.brokerageId,
         bonus_class: data.bonusClass,
-        userId: policy.userId
+        userId: policy.userId,
+        automaticRenewal: true // ✅ ADICIONADO: Campo obrigatório
       };
 
       console.log('💾 Salvando nova apólice renovada...');
