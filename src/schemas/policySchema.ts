@@ -6,16 +6,16 @@ export const policyFormSchema = z.object({
   policyNumber: z.string().optional(),
   insuranceCompany: z.string().optional(), // ✅ OPERAÇÃO VIRA-LATA: Agora é opcional
   type: z.string().optional(), // ✅ OPERAÇÃO VIRA-LATA: Agora é opcional
-  insuredAsset: z.string().optional(),
+  insuredAsset: z.string().min(1, 'Bem segurado é obrigatório'), // ✅ Corrigido: obrigatório
   premiumValue: z.number().min(0.01, 'Valor do prêmio deve ser maior que zero'),
   commissionRate: z.number().min(0, 'Taxa de comissão deve ser maior ou igual a zero').max(100, 'Taxa de comissão não pode ser maior que 100%'),
   startDate: z.string().min(1, 'Data de início é obrigatória'),
   expirationDate: z.string().optional(),
   producerId: z.string().optional(),
-  brokerageId: z.number().optional(),
+  brokerageId: z.string().optional(), // ✅ Corrigido: string para compatibilidade com Select
   status: z.enum(['Orçamento', 'Ativa', 'Cancelada', 'Renovada']), // ✅ Adicionado 'Renovada'
   isBudget: z.boolean().optional(),
-  automaticRenewal: z.boolean().default(true), // ✅ Novo campo para controle de renovação automática
+  automaticRenewal: z.boolean().default(true), // ✅ Corrigido: obrigatório com default
 }).superRefine((data, ctx) => {
   // 🎯 LÓGICA CONDICIONAL: Se não é orçamento (isBudget é false) e status não é "Orçamento", 
   // então seguradora e ramo se tornam obrigatórios

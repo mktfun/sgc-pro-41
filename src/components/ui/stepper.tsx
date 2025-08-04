@@ -57,10 +57,7 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
               <div
                 className={cn(
                   "h-0.5 w-16 mx-4 transition-colors duration-200",
-                  {
-                    "bg-blue-600": stepNumber < currentStep,
-                    "bg-slate-600": stepNumber >= currentStep,
-                  }
+                  stepNumber < currentStep ? "bg-blue-600" : "bg-slate-600"
                 )}
               />
             )}

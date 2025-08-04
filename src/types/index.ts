@@ -57,7 +57,7 @@ export interface Policy {
   // 🆕 CAMPO PARA CLASSE DE BÔNUS
   bonus_class?: string; // Classe de bônus para renovações
   // 🆕 CAMPO PARA CONTROLE DE RENOVAÇÃO AUTOMÁTICA
-  automaticRenewal?: boolean; // Controla se a apólice deve gerar renovação automática
+  automaticRenewal: boolean; // ✅ Corrigido: obrigatório (não opcional)
 }
 
 export interface Task {
