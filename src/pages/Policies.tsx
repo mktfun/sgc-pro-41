@@ -2,11 +2,13 @@
 import React, { useState, useMemo } from 'react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
 import { PolicyModal } from '@/components/policies/PolicyModal';
+import { PolicyFormModal } from '@/components/policies/PolicyFormModal';
 import { RenewPolicyModal } from '@/components/policies/RenewPolicyModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, addDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { useFilteredPolicies, PolicyFilters, SortConfig } from '@/hooks/useFilteredPolicies';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +20,10 @@ export default function Policies() {
   const { producers } = useSupabaseProducers();
   const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [isNewPolicyModalOpen, setIsNewPolicyModalOpen] = useState(false);
+  const [isEditPolicyModalOpen, setIsEditPolicyModalOpen] = useState(false);
+  const [policyToEdit, setPolicyToEdit] = useState<any>(null);
+  
   const { 
     filters, 
     setFilters, 
@@ -35,9 +41,24 @@ export default function Policies() {
     setIsRenewModalOpen(true);
   };
 
+  const handleEditPolicy = (policy: any) => {
+    setPolicyToEdit(policy);
+    setIsEditPolicyModalOpen(true);
+    setSelectedPolicy(null);
+  };
+
   const handleCloseRenewModal = () => {
     setIsRenewModalOpen(false);
     setSelectedPolicy(null);
+  };
+
+  const handleCloseNewPolicyModal = () => {
+    setIsNewPolicyModalOpen(false);
+  };
+
+  const handleCloseEditPolicyModal = () => {
+    setIsEditPolicyModalOpen(false);
+    setPolicyToEdit(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -67,6 +88,13 @@ export default function Policies() {
             value={filters.searchTerm}
             onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
           />
+          <Button
+            onClick={() => setIsNewPolicyModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Apólice
+          </Button>
         </div>
       </div>
 
@@ -254,7 +282,7 @@ export default function Policies() {
         policy={selectedPolicy}
         isOpen={!!selectedPolicy}
         onClose={() => setSelectedPolicy(null)}
-        onEdit={setSelectedPolicy}
+        onEdit={handleEditPolicy}
         onRenew={handleRenewPolicy}
       />
 
@@ -264,6 +292,54 @@ export default function Policies() {
         onClose={handleCloseRenewModal}
         onSuccess={() => setSelectedPolicy(null)}
       />
+
+      {/* Modal Nova Apólice */}
+      {isNewPolicyModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white">Nova Apólice</h2>
+              <Button
+                onClick={handleCloseNewPolicyModal}
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-white"
+              >
+                ×
+              </Button>
+            </div>
+            <PolicyFormModal
+              onClose={handleCloseNewPolicyModal}
+              onPolicyAdded={() => setSelectedPolicy(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Apólice */}
+      {isEditPolicyModalOpen && policyToEdit && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white">Editar Apólice</h2>
+              <Button
+                onClick={handleCloseEditPolicyModal}
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-white"
+              >
+                ×
+              </Button>
+            </div>
+            <PolicyFormModal
+              policy={policyToEdit}
+              isEditing={true}
+              onClose={handleCloseEditPolicyModal}
+              onPolicyAdded={() => setSelectedPolicy(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

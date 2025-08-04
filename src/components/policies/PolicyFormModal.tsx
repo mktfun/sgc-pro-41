@@ -21,8 +21,11 @@ import { useSupabaseBrokerages } from '@/hooks/useSupabaseBrokerages';
 import { useSupabaseCompanyBranches } from '@/hooks/useSupabaseCompanyBranches';
 import { Separator } from '@/components/ui/separator';
 import { policyFormSchema, PolicyFormData } from '@/schemas/policySchema';
+import { Policy } from '@/types';
 
 interface PolicyFormModalProps {
+  policy?: Policy;
+  isEditing?: boolean;
   onClose: () => void;
   onPolicyAdded?: () => void;
 }
@@ -34,9 +37,9 @@ const STEPS = [
   'Envolvidos'
 ];
 
-export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps) {
+export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAdded }: PolicyFormModalProps) {
   const { clients } = useClients();
-  const { addPolicy } = usePolicies();
+  const { addPolicy, updatePolicy } = usePolicies();
   const { companies } = useSupabaseCompanies();
   const { producers } = useSupabaseProducers();
   const { brokerages } = useSupabaseBrokerages();
@@ -45,6 +48,34 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManualDueDate, setIsManualDueDate] = useState(false);
+
+  // Preparar valores default baseado no modo (criar ou editar)
+  const getDefaultValues = (): Partial<PolicyFormData> => {
+    if (isEditing && policy) {
+      return {
+        clientId: policy.clientId,
+        policyNumber: policy.policyNumber || '',
+        insuranceCompany: policy.insuranceCompany || '',
+        type: policy.type || '',
+        insuredAsset: policy.insuredAsset || '',
+        premiumValue: policy.premiumValue,
+        commissionRate: policy.commissionRate,
+        status: policy.status,
+        startDate: policy.startDate || '',
+        expirationDate: policy.expirationDate,
+        producerId: policy.producerId || '',
+        brokerageId: policy.brokerageId?.toString() || '',
+        automaticRenewal: policy.automaticRenewal ?? true,
+      };
+    }
+    
+    return {
+      status: 'Orçamento' as const,
+      commissionRate: 20,
+      insuredAsset: '',
+      automaticRenewal: true,
+    };
+  };
 
   const {
     register,
@@ -57,12 +88,7 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
     trigger
   } = useForm<PolicyFormData>({
     resolver: zodResolver(policyFormSchema),
-    defaultValues: {
-      status: 'Orçamento',
-      commissionRate: 20,
-      insuredAsset: '',
-      automaticRenewal: true, // ✅ CORRIGIDO: Valor default explícito
-    }
+    defaultValues: getDefaultValues()
   });
 
   const selectedCompanyId = watch('insuranceCompany');
@@ -72,11 +98,11 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
 
   // Auto-calculate expiration date effect
   React.useEffect(() => {
-    if (!isManualDueDate && startDate) {
+    if (!isManualDueDate && startDate && !isEditing) {
       const calculatedExpirationDate = format(addYears(new Date(startDate), 1), 'yyyy-MM-dd');
       setValue('expirationDate', calculatedExpirationDate);
     }
-  }, [startDate, isManualDueDate, setValue]);
+  }, [startDate, isManualDueDate, setValue, isEditing]);
 
   const handleToggleDueDateMode = () => {
     if (isManualDueDate) {
@@ -130,14 +156,19 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
         expirationDate: data.expirationDate || (startDate ? format(addYears(new Date(startDate), 1), 'yyyy-MM-dd') : undefined),
       };
 
-      await addPolicy(finalData);
+      if (isEditing && policy) {
+        await updatePolicy(policy.id, finalData);
+      } else {
+        await addPolicy(finalData);
+      }
+
       reset();
       setCurrentStep(1);
       setIsManualDueDate(false);
       onPolicyAdded?.();
       onClose();
     } catch (error) {
-      console.error('Erro ao criar apólice:', error);
+      console.error('Erro ao salvar apólice:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -442,7 +473,10 @@ export function PolicyFormModal({ onClose, onPolicyAdded }: PolicyFormModalProps
             disabled={isSubmitting}
             className="bg-green-600 hover:bg-green-700"
           >
-            {isSubmitting ? 'Salvando...' : 'Salvar Apólice'}
+            {isSubmitting 
+              ? (isEditing ? 'Salvando...' : 'Criando...') 
+              : (isEditing ? 'Salvar Alterações' : 'Criar Apólice')
+            }
           </Button>
         )}
       </div>
