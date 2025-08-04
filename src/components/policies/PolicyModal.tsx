@@ -1,386 +1,257 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, FileText, Upload, CheckCircle, Eye, Download, ExternalLink } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { 
+  FileText, 
+  User, 
+  Building2, 
+  Calendar, 
+  DollarSign, 
+  Percent,
+  Download,
+  Eye,
+  Edit3,
+  RotateCcw
+} from 'lucide-react';
 import { Policy } from '@/types';
-import { useClients } from '@/hooks/useAppData';
-import { formatCurrency } from '@/utils/formatCurrency';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { useSupabaseClients } from '@/hooks/useSupabaseClients';
+import { AutoRenewalIndicator } from './AutoRenewalIndicator';
+import { PolicyRenewalSection } from './PolicyRenewalSection';
 
 interface PolicyModalProps {
   policy: Policy | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (id: string, updates: Partial<Policy>) => Promise<void>;
-  onAtivarEAnexarPdf?: (policyId: string, file: File) => Promise<void>;
+  onEdit: (policy: Policy) => void;
+  onRenew: (policy: Policy) => void;
 }
 
-export function PolicyModal({ 
-  policy, 
-  isOpen, 
-  onClose, 
-  onUpdate,
-  onAtivarEAnexarPdf 
-}: PolicyModalProps) {
-  const { clients } = useClients();
-  const [activeTab, setActiveTab] = useState('detalhes');
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+export function PolicyModal({ policy, isOpen, onClose, onEdit, onRenew }: PolicyModalProps) {
+  const { clients } = useSupabaseClients();
 
-  const client = policy ? clients.find(c => c.id === policy.clientId) : null;
+  if (!policy) return null;
 
-  useEffect(() => {
-    if (isOpen && policy) {
-      setActiveTab('detalhes');
-      setPdfFile(null);
-    }
-  }, [isOpen, policy]);
+  const client = clients.find(c => c.id === policy.clientId);
 
-  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setPdfFile(file);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Ativa': return 'bg-green-600';
+      case 'Orçamento': return 'bg-blue-600';
+      case 'Aguardando Apólice': return 'bg-yellow-600';
+      case 'Cancelada': return 'bg-red-600';
+      case 'Renovada': return 'bg-purple-600';
+      default: return 'bg-gray-600';
     }
   };
 
-  const handleAtivarComPdf = async () => {
-    if (!policy || !pdfFile || !onAtivarEAnexarPdf) return;
-
-    setIsUploading(true);
-    try {
-      await onAtivarEAnexarPdf(policy.id, pdfFile);
-      setPdfFile(null);
-      onClose();
-    } catch (error) {
-      console.error('Erro ao ativar e anexar PDF:', error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  // 🎯 **PRIORIDADE 2** - ATIVAÇÃO MANUAL SEM PDF
-  const handleAtivarManualmente = async () => {
-    if (!policy) return;
-
-    try {
-      await onUpdate(policy.id, { status: 'Ativa' });
-      onClose();
-    } catch (error) {
-      console.error('Erro ao ativar apólice manualmente:', error);
-    }
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   const handleDownloadPdf = () => {
-    if (!policy?.pdfAnexado) return;
-
-    try {
+    if (policy.pdfAnexado?.dados) {
       const link = document.createElement('a');
       link.href = policy.pdfAnexado.dados;
       link.download = policy.pdfAnexado.nome;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      console.error('Erro ao baixar PDF:', error);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      'Orçamento': 'bg-blue-600/20 text-blue-400 border-blue-600/30',
-      'Aguardando Apólice': 'bg-yellow-600/20 text-yellow-400 border-yellow-600/30',
-      'Ativa': 'bg-green-600/20 text-green-400 border-green-600/30',
-      'Cancelada': 'bg-red-600/20 text-red-400 border-red-600/30',
-      'Renovada': 'bg-purple-600/20 text-purple-400 border-purple-600/30'
-    };
-
-    return (
-      <Badge className={variants[status as keyof typeof variants] || variants['Orçamento']}>
-        {status}
-      </Badge>
-    );
-  };
-
-  if (!policy) return null;
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-slate-700 bg-slate-900 text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-center gap-3">
-            <FileText className="w-6 h-6 text-blue-400" />
-            {policy.policyNumber ? `Apólice ${policy.policyNumber}` : 'Orçamento'}
-            {getStatusBadge(policy.status)}
+          <DialogTitle className="text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-400" />
+            Detalhes da Apólice {policy.policyNumber}
           </DialogTitle>
         </DialogHeader>
 
-        {/* Navegação por Abas */}
-        <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg mb-6">
-          <Button
-            variant={activeTab === 'detalhes' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('detalhes')}
-            className={activeTab === 'detalhes' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-          >
-            <Eye className="w-4 h-4 mr-1" />
-            Detalhes
-          </Button>
-          <Button
-            variant={activeTab === 'anexos' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab('anexos')}
-            className={activeTab === 'anexos' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-          >
-            <Upload className="w-4 h-4 mr-1" />
-            Anexos & Ativação
-          </Button>
-        </div>
+        <div className="space-y-6">
+          {/* Cabeçalho com Status e Renovação Automática */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Badge className={`${getStatusColor(policy.status)} text-white`}>
+                {policy.status}
+              </Badge>
+              <AutoRenewalIndicator 
+                automaticRenewal={policy.automaticRenewal}
+                expirationDate={policy.expirationDate}
+                size="md"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              {policy.status === 'Ativa' && (
+                <Button
+                  onClick={() => onRenew(policy)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Renovar
+                </Button>
+              )}
+              <Button
+                onClick={() => onEdit(policy)}
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+            </div>
+          </div>
 
-        {/* Conteúdo das Abas */}
-        {activeTab === 'detalhes' && (
-          <div className="space-y-6">
-            {/* Informações do Cliente */}
-            {client && (
-              <div className="bg-slate-800/30 p-4 rounded-lg">
-                <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
-                  <ExternalLink className="w-4 h-4" />
+          {/* Informações Básicas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="bg-slate-800 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" />
                   Cliente
                 </h3>
-                <Link 
-                  to={`/clients/${client.id}`}
-                  className="text-blue-400 hover:underline font-medium"
-                >
-                  {client.name}
-                </Link>
-                {client.email && (
-                  <p className="text-sm text-slate-300 mt-1">{client.email}</p>
+                <p className="text-white font-medium">{client?.name || 'Cliente não encontrado'}</p>
+                {client?.phone && (
+                  <p className="text-slate-400 text-sm mt-1">{client.phone}</p>
                 )}
-                {client.phone && (
-                  <p className="text-sm text-slate-300">{client.phone}</p>
-                )}
-              </div>
-            )}
-
-            {/* Detalhes da Apólice */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-slate-300">Seguradora</Label>
-                  <p className="text-white font-medium">{policy.insuranceCompany}</p>
-                </div>
-                
-                <div>
-                  <Label className="text-slate-300">Tipo de Seguro</Label>
-                  <p className="text-white font-medium">{policy.type}</p>
-                </div>
-                
-                {policy.insuredAsset && (
-                  <div>
-                    <Label className="text-slate-300">Bem Segurado</Label>
-                    <p className="text-white font-medium">{policy.insuredAsset}</p>
-                  </div>
-                )}
-
-                {policy.bonus_class && (
-                  <div>
-                    <Label className="text-slate-300">Classe de Bônus</Label>
-                    <p className="text-white font-medium">{policy.bonus_class}</p>
-                  </div>
+                {client?.email && (
+                  <p className="text-slate-400 text-sm">{client.email}</p>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-slate-300">Valor do Prêmio</Label>
-                  <p className="text-white font-medium text-lg">
-                    {formatCurrency(policy.premiumValue)}
-                  </p>
-                </div>
-                
-                <div>
-                  <Label className="text-slate-300">Taxa de Comissão</Label>
-                  <p className="text-white font-medium">{policy.commissionRate}%</p>
-                </div>
-                
-                <div>
-                  <Label className="text-slate-300">Valor da Comissão</Label>
-                  <p className="text-green-400 font-medium text-lg">
-                    {formatCurrency((policy.premiumValue * policy.commissionRate) / 100)}
-                  </p>
-                </div>
-
-                {policy.expirationDate && (
-                  <div>
-                    <Label className="text-slate-300">Data de Vencimento</Label>
-                    <p className="text-white font-medium flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {format(new Date(policy.expirationDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                    </p>
-                  </div>
-                )}
+              <div className="bg-slate-800 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Seguradora & Produto
+                </h3>
+                <p className="text-white font-medium">{policy.insuranceCompany || 'Não especificada'}</p>
+                <p className="text-slate-400 text-sm mt-1">{policy.type || 'Ramo não especificado'}</p>
+                <p className="text-slate-300 text-sm mt-2">
+                  <strong>Bem Segurado:</strong> {policy.insuredAsset}
+                </p>
               </div>
             </div>
 
-            {/* Status e Renovação */}
-            {policy.renewalStatus && (
-              <div className="bg-slate-800/30 p-4 rounded-lg">
-                <Label className="text-slate-300">Status de Renovação</Label>
-                <p className="text-white font-medium mt-1">{policy.renewalStatus}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'anexos' && (
-          <div className="space-y-6">
-            {/* PDF Anexado Existente */}
-            {policy.pdfAnexado && (
-              <div className="bg-green-900/20 border border-green-600/30 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-400 mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  PDF Anexado
+            <div className="space-y-4">
+              <div className="bg-slate-800 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Datas
                 </h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-medium">{policy.pdfAnexado.nome}</p>
-                    <p className="text-sm text-slate-300">Arquivo anexado com sucesso</p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadPdf}
-                    className="border-green-600/30 text-green-400 hover:bg-green-600/10"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Baixar
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* 🎯 **OPÇÕES DE ATIVAÇÃO** */}
-            {policy.status === 'Aguardando Apólice' && (
-              <div className="space-y-4">
-                <h3 className="font-semibold text-white mb-4">Ativar Apólice</h3>
-                
-                {/* Opção 1: Ativar com PDF */}
-                <div className="bg-slate-800/30 p-4 rounded-lg space-y-4">
-                  <h4 className="font-medium text-white">Ativar com Anexo de PDF</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="pdf-upload" className="text-slate-300">
-                        Selecionar arquivo PDF da apólice
-                      </Label>
-                      <Input
-                        id="pdf-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handlePdfUpload}
-                        className="border-slate-600 bg-slate-800 text-white file:bg-slate-700 file:border-0 file:text-white"
-                      />
-                    </div>
-                    
-                    {pdfFile && (
-                      <div className="bg-blue-900/20 border border-blue-600/30 p-3 rounded">
-                        <p className="text-blue-400 text-sm">
-                          📄 {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
-                        </p>
-                      </div>
-                    )}
-                    
-                    <Button
-                      onClick={handleAtivarComPdf}
-                      disabled={!pdfFile || isUploading}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isUploading ? 'Processando...' : 'Ativar e Anexar PDF'}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Opção 2: Ativar Manualmente */}
-                <div className="bg-slate-800/30 p-4 rounded-lg space-y-4">
-                  <h4 className="font-medium text-white">Ativar Manualmente</h4>
-                  <p className="text-sm text-slate-300">
-                    Ative a apólice sem anexar PDF. Você pode anexar o documento posteriormente.
-                  </p>
-                  <Button
-                    onClick={handleAtivarManualmente}
-                    variant="outline"
-                    className="w-full border-green-600/30 text-green-400 hover:bg-green-600/10"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Ativar Apólice Manualmente
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Upload de PDF para Apólices Ativas */}
-            {policy.status === 'Ativa' && !policy.pdfAnexado && (
-              <div className="bg-slate-800/30 p-4 rounded-lg space-y-4">
-                <h4 className="font-medium text-white">Anexar PDF da Apólice</h4>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="pdf-upload-active" className="text-slate-300">
-                      Selecionar arquivo PDF
-                    </Label>
-                    <Input
-                      id="pdf-upload-active"
-                      type="file"
-                      accept=".pdf"
-                      onChange={handlePdfUpload}
-                      className="border-slate-600 bg-slate-800 text-white file:bg-slate-700 file:border-0 file:text-white"
-                    />
-                  </div>
-                  
-                  {pdfFile && (
-                    <div className="bg-blue-900/20 border border-blue-600/30 p-3 rounded">
-                      <p className="text-blue-400 text-sm">
-                        📄 {pdfFile.name} ({(pdfFile.size / 1024 / 1024).toFixed(2)} MB)
-                      </p>
+                <div className="space-y-2">
+                  {policy.startDate && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Início:</span>
+                      <span className="text-white">
+                        {new Date(policy.startDate).toLocaleDateString('pt-BR')}
+                      </span>
                     </div>
                   )}
-                  
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Vencimento:</span>
+                    <span className="text-white">
+                      {new Date(policy.expirationDate).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Criada em:</span>
+                    <span className="text-white">
+                      {new Date(policy.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-800 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Valores
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Prêmio:</span>
+                    <span className="text-white font-medium">
+                      {formatCurrency(policy.premiumValue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Comissão:</span>
+                    <span className="text-green-400 font-medium flex items-center gap-1">
+                      <Percent className="w-3 h-3" />
+                      {policy.commissionRate}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Valor Comissão:</span>
+                    <span className="text-green-400 font-medium">
+                      {formatCurrency(policy.premiumValue * (policy.commissionRate / 100))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* PDF Anexado */}
+          {policy.pdfAnexado && (
+            <div className="bg-slate-800 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-slate-300 mb-3">PDF da Apólice</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-red-400" />
+                  <span className="text-white">{policy.pdfAnexado.nome}</span>
+                </div>
+                <div className="flex gap-2">
                   <Button
-                    onClick={handleAtivarComPdf}
-                    disabled={!pdfFile || isUploading}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={handleDownloadPdf}
+                    size="sm"
+                    variant="outline"
+                    className="border-slate-600 text-slate-300"
                   >
-                    {isUploading ? 'Enviando...' : 'Anexar PDF'}
+                    <Download className="w-4 h-4 mr-1" />
+                    Download
                   </Button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Informação para outros status */}
-            {policy.status !== 'Aguardando Apólice' && policy.status !== 'Ativa' && (
-              <div className="bg-slate-800/30 p-4 rounded-lg text-center">
-                <p className="text-slate-300">
-                  Anexo de documentos disponível apenas para apólices ativas ou aguardando ativação.
-                </p>
+          {/* Seção de Renovação Automática */}
+          <PolicyRenewalSection
+            policyId={policy.id}
+            automaticRenewal={policy.automaticRenewal}
+            expirationDate={policy.expirationDate}
+          />
+
+          {/* Informações Adicionais */}
+          {(policy.bonus_class || policy.renewalStatus) && (
+            <>
+              <Separator className="bg-slate-700" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {policy.bonus_class && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-300 mb-2">Classe de Bônus</h4>
+                    <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      Classe {policy.bonus_class}
+                    </Badge>
+                  </div>
+                )}
+                {policy.renewalStatus && (
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-300 mb-2">Status de Renovação</h4>
+                    <Badge variant="outline" className="border-slate-600 text-slate-300">
+                      {policy.renewalStatus}
+                    </Badge>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Rodapé */}
-        <div className="flex justify-end pt-4 border-t border-slate-700">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="border-slate-600 text-slate-300 hover:bg-slate-800"
-          >
-            Fechar
-          </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
