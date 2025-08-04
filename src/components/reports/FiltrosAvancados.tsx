@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { DateRange } from 'react-day-picker';
 import { AppCard } from '@/components/ui/app-card';
@@ -21,7 +20,7 @@ interface FiltrosGlobais {
 interface FiltrosAvancadosProps {
   filtros: FiltrosGlobais;
   onFiltrosChange: (filtros: FiltrosGlobais) => void;
-  seguradoras: string[];
+  seguradoras: Array<{ id: string; name: string }>;
   ramos: string[];
   produtores: Array<{ id: string; name: string }>;
   statusDisponiveis: string[];
@@ -126,19 +125,19 @@ export function FiltrosAvancados({
             <PopoverContent className="w-80 bg-slate-900 border-slate-700">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {seguradoras.map((seguradora) => (
-                  <div key={seguradora} className="flex items-center space-x-2">
+                  <div key={seguradora.id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`seguradora-${seguradora}`}
-                      checked={filtros.seguradoraIds.includes(seguradora)}
+                      id={`seguradora-${seguradora.id}`}
+                      checked={filtros.seguradoraIds.includes(seguradora.id)}
                       onCheckedChange={(checked) => 
-                        handleMultiSelectChange('seguradoraIds', seguradora, checked as boolean)
+                        handleMultiSelectChange('seguradoraIds', seguradora.id, checked as boolean)
                       }
                     />
                     <Label 
-                      htmlFor={`seguradora-${seguradora}`}
+                      htmlFor={`seguradora-${seguradora.id}`}
                       className="text-sm text-white cursor-pointer flex-1"
                     >
-                      {seguradora}
+                      {seguradora.name}
                     </Label>
                   </div>
                 ))}
@@ -262,15 +261,18 @@ export function FiltrosAvancados({
       {/* BADGES DOS FILTROS ATIVOS */}
       {totalFiltrosAtivos > 0 && (
         <div className="flex flex-wrap gap-2">
-          {filtros.seguradoraIds.map(seguradora => (
-            <Badge key={seguradora} variant="secondary" className="bg-blue-600 text-white flex items-center gap-1">
-              {seguradora}
-              <X 
-                className="w-3 h-3 cursor-pointer hover:bg-blue-700 rounded" 
-                onClick={() => removeFilter('seguradoraIds', seguradora)}
-              />
-            </Badge>
-          ))}
+          {filtros.seguradoraIds.map(seguradoraId => {
+            const seguradora = seguradoras.find(s => s.id === seguradoraId);
+            return (
+              <Badge key={seguradoraId} variant="secondary" className="bg-blue-600 text-white flex items-center gap-1">
+                {seguradora?.name || 'Seguradora'}
+                <X 
+                  className="w-3 h-3 cursor-pointer hover:bg-blue-700 rounded" 
+                  onClick={() => removeFilter('seguradoraIds', seguradoraId)}
+                />
+              </Badge>
+            );
+          })}
           {filtros.ramos.map(ramo => (
             <Badge key={ramo} variant="secondary" className="bg-green-600 text-white flex items-center gap-1">
               {ramo}

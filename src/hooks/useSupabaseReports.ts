@@ -25,7 +25,8 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
         .select(`
           *,
           clientes!inner(*),
-          producers(*)
+          producers(*),
+          companies(id, name)
         `);
 
       // Filtro por período
@@ -99,17 +100,18 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
     queryFn: async () => {
       console.log('🔍 Carregando metadados do sistema');
       
-      const [apolicesResult, produtoresResult] = await Promise.all([
-        supabase.from('apolices').select('insurance_company, type, status'),
-        supabase.from('producers').select('id, name')
+      const [apolicesResult, produtoresResult, seguradorasResult] = await Promise.all([
+        supabase.from('apolices').select('type, status'),
+        supabase.from('producers').select('id, name'),
+        supabase.from('companies').select('id, name')
       ]);
 
       if (apolicesResult.error) throw apolicesResult.error;
       if (produtoresResult.error) throw produtoresResult.error;
+      if (seguradorasResult.error) throw seguradorasResult.error;
 
-      const seguradoras = [...new Set(
-        apolicesResult.data?.map(p => p.insurance_company).filter(Boolean) || []
-      )];
+      // Buscar seguradoras com nomes da tabela companies
+      const seguradoras = seguradorasResult.data || [];
 
       const ramos = [...new Set(
         apolicesResult.data?.map(p => p.type || 'Não especificado').filter(Boolean) || []
@@ -119,7 +121,11 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
         apolicesResult.data?.map(p => p.status).filter(Boolean) || []
       )];
 
-      console.log('✅ Metadados carregados:', { seguradoras: seguradoras.length, ramos: ramos.length, produtores: produtoresResult.data?.length });
+      console.log('✅ Metadados carregados:', { 
+        seguradoras: seguradoras.length, 
+        ramos: ramos.length, 
+        produtores: produtoresResult.data?.length 
+      });
 
       return {
         seguradoras,
