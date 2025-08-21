@@ -47,6 +47,7 @@ CREATE TABLE public.sinistros (
   assigned_to UUID REFERENCES auth.users(id), -- Analista responsável
   producer_id UUID REFERENCES public.producers(id), -- Produtor vinculado (UUID)
   brokerage_id INTEGER REFERENCES public.brokerages(id), -- Corretora (INTEGER)
+  company_id UUID REFERENCES public.companies(id), -- Seguradora direta
   
   -- Datas de controle
   analysis_deadline DATE, -- Prazo para análise
@@ -334,7 +335,7 @@ CREATE INDEX idx_sinistro_documents_sinistro_id ON public.sinistro_documents(sin
 CREATE INDEX idx_sinistro_documents_type ON public.sinistro_documents(document_type);
 
 -- =====================================================
--- VIEW ��TIL PARA CONSULTAS
+-- VIEW ÚTIL PARA CONSULTAS
 -- =====================================================
 
 -- View para sinistros com dados relacionados
