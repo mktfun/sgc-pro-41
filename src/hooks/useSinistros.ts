@@ -55,6 +55,7 @@ export interface CreateSinistroData {
   claim_amount?: number;
   deductible_amount?: number;
   priority?: string;
+  company_id?: string;
 }
 
 export interface UpdateSinistroData extends Partial<CreateSinistroData> {
