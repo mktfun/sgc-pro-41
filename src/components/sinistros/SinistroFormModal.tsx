@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -441,7 +441,7 @@ export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProp
                 />
               </div>
 
-              {/* Informações da Apólice Selecionada */}
+              {/* Informaç��es da Apólice Selecionada */}
               {selectedPolicy && (
                 <div className="md:col-span-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-4">
                   <h4 className="font-medium text-blue-400 mb-3 flex items-center gap-2">
