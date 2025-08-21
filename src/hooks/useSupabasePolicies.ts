@@ -20,6 +20,13 @@ export function useSupabasePolicies() {
           companies (
             id,
             name
+          ),
+          clients (
+            id,
+            name,
+            phone,
+            email,
+            cpf_cnpj
           )
         `)
         .eq('user_id', user.id)
@@ -58,6 +65,13 @@ export function useSupabasePolicies() {
         companies: policy.companies ? {
           id: policy.companies.id,
           name: policy.companies.name
+        } : undefined,
+        client: policy.clients ? {
+          id: policy.clients.id,
+          name: policy.clients.name,
+          phone: policy.clients.phone,
+          email: policy.clients.email,
+          cpfCnpj: policy.clients.cpf_cnpj
         } : undefined
       })) || [];
 
