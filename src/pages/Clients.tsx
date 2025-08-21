@@ -206,6 +206,11 @@ export default function Clients() {
             totalClients={allClients?.length || 0}
           />
 
+          {/* 🚀 **EXPORTAÇÃO DE RELATÓRIO DE DUPLICATAS** */}
+          {duplicateAlert.count > 0 && allClients && (
+            <DuplicateReportExport clients={allClients} />
+          )}
+
           {/* 🚀 **BARRA DE CONTROLES: BUSCA, ORDENAÇÃO E VISUALIZAÇÃO** */}
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Barra de busca */}
