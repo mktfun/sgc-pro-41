@@ -340,19 +340,21 @@ CREATE INDEX idx_sinistro_documents_type ON public.sinistro_documents(document_t
 
 -- View para sinistros com dados relacionados
 CREATE VIEW public.sinistros_complete AS
-SELECT 
+SELECT
   s.*,
   c.name as client_name,
   c.phone as client_phone,
   a.policy_number,
   a.insurance_company,
   p.name as producer_name,
-  b.name as brokerage_name
+  b.name as brokerage_name,
+  co.name as company_name
 FROM public.sinistros s
 LEFT JOIN public.clientes c ON s.client_id = c.id
 LEFT JOIN public.apolices a ON s.policy_id = a.id
 LEFT JOIN public.producers p ON s.producer_id = p.id
-LEFT JOIN public.brokerages b ON s.brokerage_id = b.id;
+LEFT JOIN public.brokerages b ON s.brokerage_id = b.id
+LEFT JOIN public.companies co ON s.company_id = co.id;
 
 -- =====================================================
 -- COMENTÁRIOS PARA DOCUMENTAÇÃO
