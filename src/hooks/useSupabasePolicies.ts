@@ -15,26 +15,13 @@ export function useSupabasePolicies() {
 
       const { data, error } = await supabase
         .from('apolices')
-        .select(`
-          *,
-          companies (
-            id,
-            name
-          ),
-          clients (
-            id,
-            name,
-            phone,
-            email,
-            cpf_cnpj
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar apólices:', error);
-        throw error;
+        console.error('Erro ao buscar apólices:', error.message, error);
+        throw new Error(`Erro ao buscar apólices: ${error.message}`);
       }
 
       const formattedPolicies: Policy[] = data?.map((policy: any) => ({
