@@ -27,6 +27,7 @@ export interface Sinistro {
   assigned_to?: string;
   producer_id?: string;
   brokerage_id?: number;
+  company_id?: string;
   analysis_deadline?: string;
   resolution_date?: string;
   payment_date?: string;
