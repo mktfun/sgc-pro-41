@@ -57,7 +57,6 @@ interface SinistroFormModalProps {
 
 export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProps) {
   const [open, setOpen] = useState(false);
-  const [policySearch, setPolicySearch] = useState('');
   const createSinistro = useCreateSinistro();
   const { clients = [] } = useClients();
   const { policies = [] } = usePolicies();
