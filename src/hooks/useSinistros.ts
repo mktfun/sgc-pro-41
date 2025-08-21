@@ -44,7 +44,7 @@ export interface Sinistro {
 }
 
 export interface CreateSinistroData {
-  policy_id: string;
+  policy_id?: string;
   client_id?: string;
   occurrence_date: string;
   claim_type: string;
@@ -84,25 +84,24 @@ export function useSinistros() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar sinistros:', error);
+        console.error('Erro ao carregar sinistros:', error);
         throw error;
       }
 
-      return data as Sinistro[];
+      return data || [];
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }
 
-// Hook para buscar um sinistro específico
+// Hook para buscar sinistro específico
 export function useSinistro(id: string) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['sinistro', id],
     queryFn: async () => {
-      if (!user?.id) throw new Error('Usuário não autenticado');
+      if (!user?.id || !id) throw new Error('Usuário não autenticado ou ID inválido');
 
       const { data, error } = await supabase
         .from('sinistros_complete')
@@ -112,11 +111,11 @@ export function useSinistro(id: string) {
         .single();
 
       if (error) {
-        console.error('Erro ao buscar sinistro:', error);
+        console.error('Erro ao carregar sinistro:', error);
         throw error;
       }
 
-      return data as Sinistro;
+      return data;
     },
     enabled: !!user?.id && !!id,
   });
