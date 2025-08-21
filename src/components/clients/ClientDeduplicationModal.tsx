@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Merge, Users, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Merge, Users, CheckCircle, Eye } from 'lucide-react';
 import { Client } from '@/types';
 import { useSupabaseClients } from '@/hooks/useSupabaseClients';
+import { MergePreview } from './MergePreview';
 import { toast } from 'sonner';
 
 interface DuplicateGroup {
