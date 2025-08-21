@@ -420,7 +420,7 @@ export function ClientDeduplicationModal({ clients, onDeduplicationComplete }: C
                     size="sm"
                     onClick={() => setSelectedGroup(null)}
                   >
-                    ��� Voltar
+                    ← Voltar
                   </Button>
                   <h3 className="text-lg font-medium text-white">
                     Mesclar Clientes Duplicados
@@ -494,7 +494,7 @@ export function ClientDeduplicationModal({ clients, onDeduplicationComplete }: C
                   ))}
                 </div>
 
-                {primaryClient && (
+                {primaryClient && !showPreview && (
                   <div className="flex justify-end gap-2 pt-4">
                     <Button
                       variant="outline"
@@ -503,13 +503,34 @@ export function ClientDeduplicationModal({ clients, onDeduplicationComplete }: C
                       Cancelar
                     </Button>
                     <Button
+                      variant="outline"
+                      onClick={() => setShowPreview(true)}
+                      className="gap-2"
+                    >
+                      <Eye size={16} />
+                      Preview da Mesclagem
+                    </Button>
+                    <Button
                       onClick={handleMergeClients}
                       disabled={isProcessing}
                       className="gap-2"
                     >
                       <Merge size={16} />
-                      {isProcessing ? 'Mesclando...' : 'Mesclar Clientes'}
+                      {isProcessing ? 'Mesclando...' : 'Mesclar Diretamente'}
                     </Button>
+                  </div>
+                )}
+
+                {/* Preview da Mesclagem */}
+                {primaryClient && showPreview && (
+                  <div className="mt-6">
+                    <MergePreview
+                      primaryClient={primaryClient}
+                      secondaryClients={selectedGroup.clients.filter(c => c.id !== primaryClient.id)}
+                      onConfirm={handleMergeClients}
+                      onCancel={() => setShowPreview(false)}
+                      isProcessing={isProcessing}
+                    />
                   </div>
                 )}
               </div>
