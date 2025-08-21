@@ -229,6 +229,58 @@ export function useDeleteSinistro() {
   });
 }
 
+// Hook para buscar atividades do sinistro
+export function useSinistroActivities(sinistroId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['sinistro-activities', sinistroId],
+    queryFn: async () => {
+      if (!user?.id || !sinistroId) return [];
+
+      const { data, error } = await supabase
+        .from('sinistro_activities')
+        .select('*')
+        .eq('sinistro_id', sinistroId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar atividades:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!user?.id && !!sinistroId,
+  });
+}
+
+// Hook para buscar documentos do sinistro
+export function useSinistroDocuments(sinistroId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['sinistro-documents', sinistroId],
+    queryFn: async () => {
+      if (!user?.id || !sinistroId) return [];
+
+      const { data, error } = await supabase
+        .from('sinistro_documents')
+        .select('*')
+        .eq('sinistro_id', sinistroId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar documentos:', error);
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!user?.id && !!sinistroId,
+  });
+}
+
 // Hook para buscar atividades de um sinistro
 export function useSinistroActivities(sinistroId: string) {
   const { user } = useAuth();
