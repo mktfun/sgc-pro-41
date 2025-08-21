@@ -339,61 +339,50 @@ export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProp
                         <FileText className="w-4 h-4" />
                         Apólice
                       </FormLabel>
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                          <Input
-                            placeholder="Buscar por número da apólice, cliente ou seguradora..."
-                            value={policySearch}
-                            onChange={(e) => setPolicySearch(e.target.value)}
-                            className="pl-10"
-                          />
-                        </div>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            handlePolicyChange(value);
-                          }}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma apólice (opcional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-[300px]">
-                            {filteredPolicies.length === 0 ? (
-                              <div className="p-4 text-center text-muted-foreground">
-                                {policySearch ? 'Nenhuma apólice encontrada' : 'Nenhuma apólice disponível'}
-                              </div>
-                            ) : (
-                              filteredPolicies.map((policy) => (
-                                <SelectItem key={policy.id} value={policy.id}>
-                                  <div className="flex flex-col items-start py-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">
-                                        {policy.policyNumber || `Orçamento #${policy.id.slice(-4)}`}
-                                      </span>
-                                      <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
-                                        {policy.status}
-                                      </span>
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <User className="w-3 h-3" />
-                                        {policy.client?.name || 'Cliente não informado'}
-                                      </span>
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {policy.insuranceCompany} • {policy.type}
-                                    </div>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          handlePolicyChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma apólice (opcional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-[300px]">
+                          {policies.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              Nenhuma apólice disponível
+                            </div>
+                          ) : (
+                            policies.map((policy) => (
+                              <SelectItem key={policy.id} value={policy.id}>
+                                <div className="flex flex-col items-start py-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">
+                                      {policy.policyNumber || `Orçamento #${policy.id.slice(-4)}`}
+                                    </span>
+                                    <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+                                      {policy.status}
+                                    </span>
                                   </div>
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {policy.client?.name || 'Cliente não informado'}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {policy.insuranceCompany} • {policy.type}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
