@@ -458,6 +458,17 @@ export default function Sinistros() {
           )}
         </AppCard>
       )}
+
+      {/* Modal de Detalhes */}
+      <SinistroDetailsModal
+        sinistro={selectedSinistro}
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        onSuccess={() => {
+          refetch();
+          setDetailsModalOpen(false);
+        }}
+      />
     </div>
   );
 }
