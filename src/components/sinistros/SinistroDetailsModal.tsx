@@ -248,7 +248,9 @@ export function SinistroDetailsModal({ sinistro, open, onOpenChange, onSuccess }
                     </div>
                     <div>
                       <span className="text-white/60">Seguradora:</span>
-                      <p className="text-white font-medium">{sinistro.insurance_company || 'N/A'}</p>
+                      <p className="text-white font-medium">
+                        {sinistro.company_name || sinistro.insurance_company || 'N/A'}
+                      </p>
                     </div>
                   </div>
 
