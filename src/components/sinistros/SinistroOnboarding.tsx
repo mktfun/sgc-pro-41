@@ -64,7 +64,7 @@ const steps = [
 
 const sinistroSchema = z.object({
   // Passo 1
-  policy_id: z.string().min(1, 'Selecione uma apólice'),
+  policy_id: z.string().optional(), // Agora opcional
   client_id: z.string().optional(),
   company_id: z.string().optional(),
   
@@ -169,7 +169,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
     
     switch (currentStep) {
       case 1:
-        return !!values.policy_id;
+        return true; // Apólice agora é opcional
       case 2:
         return !!values.occurrence_date && !!values.claim_type && values.description.length >= 10;
       case 3:
@@ -208,8 +208,8 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
           <div className="space-y-6">
             <div className="text-center">
               <FileText className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Selecione a Apólice</h3>
-              <p className="text-white/60">Escolha a apólice relacionada ao sinistro</p>
+              <h3 className="text-xl font-semibold text-white mb-2">Vincular Apólice</h3>
+              <p className="text-white/60">Opcional: Escolha a apólice relacionada ao sinistro</p>
             </div>
 
             <FormField
@@ -217,11 +217,11 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
               name="policy_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Apólice *</FormLabel>
+                  <FormLabel>Apólice (Opcional)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Busque e selecione uma apólice" />
+                        <SelectValue placeholder="Selecione uma apólice (opcional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
