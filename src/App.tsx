@@ -63,6 +63,7 @@ function App() {
                   <Route path="faturamento" element={<Faturamento />} />
                   <Route path="tasks" element={<Tasks />} />
                   <Route path="renovacoes" element={<Renovacoes />} />
+                  <Route path="sinistros" element={<Sinistros />} />
                   <Route path="reports" element={<Reports />} />
                   
                   {/* Rotas de configurações com layout próprio */}
