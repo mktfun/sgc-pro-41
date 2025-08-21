@@ -1,4 +1,3 @@
-
 // src/components/layout/PageTitle.tsx
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -13,6 +12,7 @@ const routeTitles: Record<string, string> = {
   '/appointments': 'Agendamentos',
   '/tasks': 'Tarefas',
   '/renovacoes': 'Renovações',
+  '/sinistros': 'Sinistros',
   '/reports': 'Relatórios Gerenciais',
   '/faturamento': 'Faturamento',
   '/settings': 'Configurações',
