@@ -17,7 +17,7 @@ const sinistroSchema = z.object({
   policy_id: z.string().optional(), // Agora opcional
   client_id: z.string().optional(),
   occurrence_date: z.string().min(1, 'Data da ocorrência é obrigatória'),
-  claim_type: z.string().min(1, 'Tipo do sinistro é obrigatório'),
+  claim_type: z.string().min(1, 'Tipo do sinistro é obrigat��rio'),
   description: z.string().min(10, 'Descrição deve ter pelo menos 10 caracteres'),
   location_occurrence: z.string().optional(),
   circumstances: z.string().optional(),
@@ -74,23 +74,6 @@ export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProp
   const selectedPolicyId = form.watch('policy_id');
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
 
-  // Filtrar e buscar apólices
-  const filteredPolicies = useMemo(() => {
-    if (!policySearch) return policies;
-
-    const search = policySearch.toLowerCase();
-    return policies.filter(policy => {
-      const policyNumber = policy.policyNumber?.toLowerCase() || '';
-      const clientName = policy.client?.name?.toLowerCase() || '';
-      const insuranceCompany = policy.insuranceCompany?.toLowerCase() || '';
-      const type = policy.type?.toLowerCase() || '';
-
-      return policyNumber.includes(search) ||
-             clientName.includes(search) ||
-             insuranceCompany.includes(search) ||
-             type.includes(search);
-    });
-  }, [policies, policySearch]);
 
   // Auto-preenche o cliente quando uma apólice é selecionada
   const handlePolicyChange = useCallback((policyId: string) => {
