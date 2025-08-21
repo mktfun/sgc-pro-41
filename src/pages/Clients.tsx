@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { User, Search, Loader2, ArrowUpDown, Grid3X3, List } from 'lucide-react';
@@ -48,10 +48,11 @@ export default function Clients() {
   // 🔥 **ESTADO PARA CONTROLAR O MODAL DE IMPORTAÇÃO**
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
-  // 🚀 **HOOK COM PAGINAÇÃO E ORDENAÇÃO** (para exibição)
+  // 🚀 **HOOK COM PAGINAÇÃO, ORDENAÇÃO E BUSCA** (para exibição)
   const { clients, loading, totalCount, totalPages, refetch } = useSupabaseClients({
     pagination: { page: currentPage, pageSize },
-    sortConfig
+    sortConfig,
+    searchTerm: searchDebounce
   });
 
   // 🚀 **HOOK PARA TODOS OS CLIENTES** (para deduplicação e busca global)
@@ -59,8 +60,21 @@ export default function Clients() {
 
   const { policies } = usePolicies();
 
-  // Estado para a busca LOCAL (aplicada apenas nos resultados da página atual)
+  // Estado para a busca GLOBAL (aplicada no backend em todos os clientes)
   const [termoBusca, setTermoBusca] = useState('');
+  const [searchDebounce, setSearchDebounce] = useState('');
+
+  // Debounce da busca para evitar muitas requisições
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounce(termoBusca);
+      if (termoBusca !== searchDebounce) {
+        setCurrentPage(1); // Reset para primeira página ao buscar
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [termoBusca]);
 
   // 🚀 **HOOK DE DEDUPLICAÇÃO** (usando TODOS os clientes)
   const { duplicateAlert } = useClientDuplication(allClients);
@@ -69,17 +83,13 @@ export default function Clients() {
     return policies.filter(p => p.clientId === clientId && p.status === 'Ativa').length;
   };
 
-  // Filtragem LOCAL dos clientes (agora aplicada na página atual)
-  const clientesFiltrados = clients.filter(client =>
-    client.name.toLowerCase().includes(termoBusca.toLowerCase()) ||
-    client.email.toLowerCase().includes(termoBusca.toLowerCase()) ||
-    client.phone.includes(termoBusca)
-  );
+  // A filtragem agora é feita no BACKEND, então usamos diretamente os clientes retornados
+  const clientesFiltrados = clients;
 
   // 🚀 **FUNÇÕES DE NAVEGAÇÃO DE PÁGINA**
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    setTermoBusca(''); // Limpa a busca ao trocar de página
+    // Não limpa mais a busca ao trocar de página
   };
 
   const handlePreviousPage = () => {
