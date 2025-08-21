@@ -158,7 +158,11 @@ export default function Clients() {
         <div>
           <h1 className="text-3xl font-bold text-white">Meus Clientes</h1>
           <p className="text-white/60">
-            Gerencie seus clientes e mantenha contato ({totalCount} clientes total)
+            {searchDebounce ? (
+              `Encontrados ${totalCount} clientes para "${searchDebounce}"`
+            ) : (
+              `Gerencie seus clientes e mantenha contato (${totalCount} clientes total)`
+            )}
           </p>
         </div>
         <div className="flex gap-3">
