@@ -63,6 +63,14 @@ export interface Policy {
     id: string;
     name: string;
   };
+  // 🆕 DADOS DO CLIENTE PARA EXIBIÇÃO
+  client?: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+    cpfCnpj?: string;
+  };
 }
 
 export interface Task {
