@@ -134,10 +134,7 @@ export default function Sinistros() {
           </h1>
           <p className="text-white/60">Gerencie ocorrências e processos de sinistro</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Registrar Sinistro
-        </Button>
+        <SinistroFormModal onSuccess={() => refetch()} />
       </div>
 
       {/* Estatísticas */}
