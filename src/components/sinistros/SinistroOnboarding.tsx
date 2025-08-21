@@ -125,7 +125,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
   const form = useForm<SinistroFormData>({
     resolver: zodResolver(sinistroSchema),
     defaultValues: {
-      occurrence_date: format(new Date(), 'yyyy-MM-dd'),
+      occurrence_date: new Date().toISOString().split('T')[0], // Formato mais estável
       priority: 'Média',
       claim_amount: '',
       deductible_amount: '',
@@ -147,7 +147,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
         form.setValue('company_id', company.id);
       }
     }
-  }, [selectedPolicy, form, companies]);
+  }, [selectedPolicyId, companies]); // Removido 'form' das dependências
 
   const progress = (currentStep / steps.length) * 100;
 
