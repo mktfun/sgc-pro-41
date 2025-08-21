@@ -58,8 +58,8 @@ interface SinistroFormModalProps {
 export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProps) {
   const [open, setOpen] = useState(false);
   const createSinistro = useCreateSinistro();
-  const { data: clients = [] } = useClients();
-  const { data: policies = [] } = usePolicies();
+  const { clients = [] } = useClients();
+  const { policies = [] } = usePolicies();
 
   const form = useForm<SinistroFormData>({
     resolver: zodResolver(sinistroSchema),
