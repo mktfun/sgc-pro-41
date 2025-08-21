@@ -32,15 +32,15 @@ import { format } from 'date-fns';
 const steps = [
   {
     id: 1,
-    title: 'Apólice e Cliente',
-    description: 'Selecione a apólice afetada',
-    icon: FileText
+    title: 'Informações Básicas',
+    description: 'Data e tipo da ocorrência',
+    icon: AlertTriangle
   },
   {
     id: 2,
-    title: 'Detalhes da Ocorrência',
+    title: 'Descrição Detalhada',
     description: 'Informe o que aconteceu',
-    icon: AlertTriangle
+    icon: FileText
   },
   {
     id: 3,
@@ -126,7 +126,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
     resolver: zodResolver(sinistroSchema),
     defaultValues: {
       occurrence_date: format(new Date(), 'yyyy-MM-dd'),
-      priority: 'Média',
+      priority: 'M��dia',
       claim_amount: '',
       deductible_amount: '',
     },
