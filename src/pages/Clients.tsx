@@ -185,11 +185,12 @@ export default function Clients() {
       <SettingsPanel>
         <div className="space-y-6">
           {/* 🚀 **ALERTA DE DUPLICATAS** */}
-          <DuplicateAlert 
+          <DuplicateAlert
             count={duplicateAlert.count}
             highConfidence={duplicateAlert.highConfidence}
             mediumConfidence={duplicateAlert.mediumConfidence}
             lowConfidence={duplicateAlert.lowConfidence}
+            totalClients={allClients?.length || 0}
           />
 
           {/* 🚀 **BARRA DE CONTROLES: BUSCA, ORDENAÇÃO E VISUALIZAÇÃO** */}
