@@ -181,29 +181,12 @@ export default function Clients() {
       {/* PAINEL PRINCIPAL */}
       <SettingsPanel>
         <div className="space-y-6">
-          {/* 🚀 **ESTATÍSTICAS DE DEDUPLICAÇÃO** */}
-          {(allClients?.length || 0) > 0 && (
-            <DeduplicationStats
-              totalClients={allClients?.length || 0}
-              duplicateCount={duplicateAlert.count}
-              highConfidence={duplicateAlert.highConfidence}
-              mediumConfidence={duplicateAlert.mediumConfidence}
-              lowConfidence={duplicateAlert.lowConfidence}
+          {/* 🚀 **SEÇÃO UNIFICADA DE DEDUPLICAÇÃO** */}
+          {allClients && allClients.length > 0 && (
+            <DeduplicationSection
+              clients={allClients}
+              onDeduplicationComplete={refetch}
             />
-          )}
-
-          {/* 🚀 **ALERTA DE DUPLICATAS** */}
-          <DuplicateAlert
-            count={duplicateAlert.count}
-            highConfidence={duplicateAlert.highConfidence}
-            mediumConfidence={duplicateAlert.mediumConfidence}
-            lowConfidence={duplicateAlert.lowConfidence}
-            totalClients={allClients?.length || 0}
-          />
-
-          {/* 🚀 **EXPORTAÇÃO DE RELATÓRIO DE DUPLICATAS** */}
-          {duplicateAlert.count > 0 && allClients && (
-            <DuplicateReportExport clients={allClients} />
           )}
 
           {/* 🚀 **BARRA DE CONTROLES: BUSCA, ORDENAÇÃO E VISUALIZAÇÃO** */}
