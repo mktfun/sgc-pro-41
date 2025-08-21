@@ -1,4 +1,3 @@
-
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle } from 'lucide-react';
@@ -8,9 +7,10 @@ interface DuplicateAlertProps {
   highConfidence: number;
   mediumConfidence: number;
   lowConfidence: number;
+  totalClients?: number;
 }
 
-export function DuplicateAlert({ count, highConfidence, mediumConfidence, lowConfidence }: DuplicateAlertProps) {
+export function DuplicateAlert({ count, highConfidence, mediumConfidence, lowConfidence, totalClients }: DuplicateAlertProps) {
   if (count === 0) return null;
 
   return (
@@ -19,6 +19,7 @@ export function DuplicateAlert({ count, highConfidence, mediumConfidence, lowCon
       <AlertDescription className="flex items-center gap-2">
         <span className="text-yellow-200">
           {count} possíveis clientes duplicados encontrados
+          {totalClients && ` (análise de ${totalClients} clientes)`}
         </span>
         <div className="flex gap-1">
           {highConfidence > 0 && (
