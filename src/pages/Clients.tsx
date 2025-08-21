@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { User, Search, Loader2, ArrowUpDown, Grid3X3, List } from 'lucide-react';
 import { useSupabaseClients } from '@/hooks/useSupabaseClients';
+import { useAllClients } from '@/hooks/useAllClients';
 import { usePolicies } from '@/hooks/useAppData';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { ClientImportModal } from '@/components/clients/ClientImportModal';
@@ -48,19 +48,22 @@ export default function Clients() {
   // 🔥 **ESTADO PARA CONTROLAR O MODAL DE IMPORTAÇÃO**
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
-  // 🚀 **HOOK COM PAGINAÇÃO E ORDENAÇÃO**
-  const { clients, loading, totalCount, totalPages, refetch } = useSupabaseClients({ 
+  // 🚀 **HOOK COM PAGINAÇÃO E ORDENAÇÃO** (para exibição)
+  const { clients, loading, totalCount, totalPages, refetch } = useSupabaseClients({
     pagination: { page: currentPage, pageSize },
     sortConfig
   });
-  
+
+  // 🚀 **HOOK PARA TODOS OS CLIENTES** (para deduplicação e busca global)
+  const { allClients, loading: loadingAll } = useAllClients();
+
   const { policies } = usePolicies();
-  
+
   // Estado para a busca LOCAL (aplicada apenas nos resultados da página atual)
   const [termoBusca, setTermoBusca] = useState('');
 
-  // 🚀 **HOOK DE DEDUPLICAÇÃO**
-  const { duplicateAlert } = useClientDuplication(clients);
+  // 🚀 **HOOK DE DEDUPLICAÇÃO** (usando TODOS os clientes)
+  const { duplicateAlert } = useClientDuplication(allClients);
 
   const getClientPoliciesCount = (clientId: string) => {
     return policies.filter(p => p.clientId === clientId && p.status === 'Ativa').length;
@@ -123,7 +126,7 @@ export default function Clients() {
     setIsImportModalOpen(false); // Fecha o modal
   };
 
-  if (loading) {
+  if (loading || loadingAll) {
     return (
       <div className="space-y-6">
         <SettingsPanel>
