@@ -33,12 +33,12 @@ export function usePolicies() {
   return {
     policies,
     addPolicy: supabasePolicies.addPolicy,
-    updatePolicy,
-    deletePolicy,
-    ativarEAnexarPdf,
+    updatePolicy: supabasePolicies.updatePolicy,
+    deletePolicy: supabasePolicies.deletePolicy,
+    ativarEAnexarPdf: supabasePolicies.ativarEAnexarPdf,
     loading,
-    isLoading,
-    isUpdatingPolicy,
+    isLoading: supabasePolicies.isLoading || false,
+    isUpdatingPolicy: supabasePolicies.isUpdatingPolicy || false,
     error: null
   };
 }
