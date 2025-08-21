@@ -129,9 +129,9 @@ export function SinistroDetailsModal({ sinistro, open, onOpenChange, onSuccess }
     resolver: zodResolver(updateSinistroSchema),
   });
 
-  // Reset form when sinistro changes
+  // Reset form when sinistro changes or modal opens
   useEffect(() => {
-    if (sinistro) {
+    if (sinistro && open) {
       form.reset({
         status: sinistro.status,
         claim_amount: sinistro.claim_amount?.toString() || '',
@@ -146,8 +146,10 @@ export function SinistroDetailsModal({ sinistro, open, onOpenChange, onSuccess }
         resolution_date: sinistro.resolution_date || '',
         payment_date: sinistro.payment_date || '',
       });
+      setIsEditing(false);
+      setActiveTab('details');
     }
-  }, [sinistro, form]);
+  }, [sinistro, open, form]);
 
   if (!sinistro) return null;
 
