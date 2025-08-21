@@ -348,53 +348,9 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Detalhes da Ocorrência</h3>
-              <p className="text-white/60">Conte-nos o que aconteceu</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="occurrence_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Data da Ocorrência *
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="claim_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo do Sinistro *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {claimTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FileText className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Descrição Detalhada</h3>
+              <p className="text-white/60">Conte-nos detalhadamente o que aconteceu</p>
             </div>
 
             <FormField
@@ -404,10 +360,10 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
                 <FormItem>
                   <FormLabel>Descrição Detalhada da Ocorrência *</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Descreva detalhadamente o que aconteceu, como ocorreu, quais danos foram causados..."
-                      className="min-h-[120px]"
-                      {...field} 
+                    <Textarea
+                      placeholder="Descreva detalhadamente o que aconteceu, como ocorreu, quais danos foram causados, condições do momento, pessoas envolvidas, etc..."
+                      className="min-h-[150px]"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -415,30 +371,16 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prioridade</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a prioridade" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {priorities.map((priority) => (
-                        <SelectItem key={priority.value} value={priority.value}>
-                          <span className={priority.color}>{priority.label}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+              <h4 className="font-medium text-blue-400 mb-2">💡 Dicas para uma boa descrição</h4>
+              <ul className="text-sm text-white/80 space-y-1">
+                <li>• Relate os fatos em ordem cronológica</li>
+                <li>• Descreva as condições climáticas e do local</li>
+                <li>• Mencione se havia testemunhas</li>
+                <li>• Detalhe os danos observados</li>
+                <li>• Inclua informações sobre outros envolvidos</li>
+              </ul>
+            </div>
           </div>
         );
 
