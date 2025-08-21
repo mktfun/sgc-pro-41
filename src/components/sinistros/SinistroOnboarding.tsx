@@ -166,12 +166,12 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
 
   const validateCurrentStep = () => {
     const values = form.getValues();
-    
+
     switch (currentStep) {
       case 1:
         return !!values.occurrence_date && !!values.claim_type; // Data e tipo são obrigatórios
       case 2:
-        return values.description.length >= 10; // Descrição obrigatória
+        return values.description && values.description.length >= 10; // Descrição obrigatória
       case 3:
         return true; // Passo opcional
       case 4:
