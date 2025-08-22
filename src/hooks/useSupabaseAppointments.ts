@@ -28,9 +28,16 @@ export function useSupabaseAppointments() {
   });
 
   const { data: upcomingAppointments = [], isLoading: isLoadingUpcoming } = useQuery({
-    queryKey: ['appointments', 'upcoming'],
+    queryKey: ['appointments', 'immediate-focus'],
     queryFn: async () => {
       const now = new Date();
+      const currentDateTime = now.toISOString();
+      const todayDate = now.toISOString().split('T')[0];
+
+      // Buscar agendamentos para foco imediato:
+      // 1. Agendamentos pendentes de hoje em diante
+      // 2. Agendamentos atrasados (pendentes que já passaram da data/hora)
+      // 3. Agendamentos prioritários (se houver campo priority)
       const { data, error } = await supabase
         .from('appointments')
         .select(`
@@ -38,17 +45,57 @@ export function useSupabaseAppointments() {
           client:clientes(name)
         `)
         .eq('status', 'Pendente')
-        .gte('date', now.toISOString().split('T')[0])
         .order('date', { ascending: true })
-        .order('time', { ascending: true })
-        .limit(5);
-      
+        .order('time', { ascending: true });
+
       if (error) {
-        console.error('Error fetching upcoming appointments:', error);
+        console.error('Error fetching immediate focus appointments:', error);
         throw error;
       }
-      
-      return data;
+
+      if (!data) return [];
+
+      // Filtrar e priorizar agendamentos
+      const processedAppointments = data
+        .map(appointment => {
+          const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+          const isOverdue = appointmentDateTime < now;
+          const isToday = appointment.date === todayDate;
+          const isUpcoming = appointmentDateTime >= now;
+          const isPriority = appointment.priority === 'Alta' || appointment.priority === 'Urgente';
+
+          return {
+            ...appointment,
+            isOverdue,
+            isToday,
+            isUpcoming,
+            isPriority,
+            sortPriority: isOverdue ? 1 : (isToday ? 2 : (isPriority ? 3 : 4))
+          };
+        })
+        .filter(appointment => {
+          // Incluir se:
+          // - É atrasado (passou da data/hora mas ainda está pendente)
+          // - É de hoje
+          // - É prioritário
+          // - É dos próximos dias
+          return appointment.isOverdue ||
+                 appointment.isToday ||
+                 appointment.isPriority ||
+                 appointment.isUpcoming;
+        })
+        .sort((a, b) => {
+          // Ordenar por prioridade: atrasados primeiro, depois hoje, depois prioritários, depois futuros
+          if (a.sortPriority !== b.sortPriority) {
+            return a.sortPriority - b.sortPriority;
+          }
+          // Dentro da mesma prioridade, ordenar por data e hora
+          const dateCompare = new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
+          return dateCompare;
+        })
+        .slice(0, 8); // Aumentar limite para incluir mais agendamentos relevantes
+
+      return processedAppointments;
     },
     staleTime: 30 * 1000, // 30 segundos
   });
