@@ -1,5 +1,4 @@
-
-import { Calendar, Clock, User, Eye, Check, X, FileText } from 'lucide-react';
+import { Calendar, Clock, User, Eye, Check, X, FileText, AlertTriangle, Zap } from 'lucide-react';
 import { AppCard } from '@/components/ui/app-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -109,7 +108,7 @@ export function UpcomingAppointmentsCard({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Foco Imediato</h3>
-            <p className="text-sm text-white/60">Próximos compromissos</p>
+            <p className="text-sm text-white/60">Atrasados, hoje e prioritários</p>
           </div>
         </div>
 
@@ -125,24 +124,56 @@ export function UpcomingAppointmentsCard({
           <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-thin">
             {appointments.map((appointment, index) => {
               const appointmentDate = new Date(appointment.date);
+              const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+              const now = new Date();
               const isToday = format(new Date(), 'yyyy-MM-dd') === appointment.date;
+              const isOverdue = appointmentDateTime < now;
+              const isPriority = appointment.priority === 'Alta' || appointment.priority === 'Urgente';
               const dayName = format(appointmentDate, 'EEEE', { locale: ptBR });
               const timeFormatted = appointment.time.slice(0, 5);
               const clientName = appointment.client?.name || 'Sem cliente';
-              
+
+              // Definir cor e estilo baseado no tipo
+              let borderColor = 'border-white/10';
+              let bgColor = 'bg-white/5';
+              let statusIcon = null;
+              let statusLabel = dayName;
+
+              if (isOverdue) {
+                borderColor = 'border-red-500/50';
+                bgColor = 'bg-red-500/10';
+                statusIcon = <AlertTriangle className="w-3 h-3 text-red-400" />;
+                statusLabel = 'Atrasado';
+              } else if (isToday) {
+                borderColor = 'border-blue-500/50';
+                bgColor = 'bg-blue-500/10';
+                statusLabel = 'Hoje';
+              } else if (isPriority) {
+                borderColor = 'border-yellow-500/50';
+                bgColor = 'bg-yellow-500/10';
+                statusIcon = <Zap className="w-3 h-3 text-yellow-400" />;
+                statusLabel = `${dayName} - Prioritário`;
+              }
+
               return (
                 <div
                   key={appointment.id}
-                  className="group p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-200"
+                  className={`group p-3 rounded-lg border hover:bg-white/10 transition-all duration-200 ${bgColor} ${borderColor}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge 
-                          variant={isToday ? "default" : "secondary"}
-                          className={`text-xs ${isToday ? 'bg-blue-500/20 text-blue-300' : 'bg-white/10 text-white/70'}`}
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs flex items-center gap-1 ${
+                            isOverdue ? 'bg-red-500/20 text-red-300' :
+                            isToday ? 'bg-blue-500/20 text-blue-300' :
+                            isPriority ? 'bg-yellow-500/20 text-yellow-300' :
+                            'bg-white/10 text-white/70'
+                          }`}
                         >
-                          {isToday ? 'Hoje' : dayName}
+                          {statusIcon}
+                          {statusLabel}
                         </Badge>
                         <div className="flex items-center gap-1 text-white/60">
                           <Clock className="w-3 h-3" />
