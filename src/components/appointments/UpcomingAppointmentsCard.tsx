@@ -117,8 +117,8 @@ export function UpcomingAppointmentsCard({
             <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
               <Calendar className="w-6 h-6 text-white/40" />
             </div>
-            <p className="text-white/60 text-sm">Nenhum compromisso próximo</p>
-            <p className="text-white/40 text-xs mt-1">Que tal agendar algo?</p>
+            <p className="text-white/60 text-sm">Nenhum compromisso urgente</p>
+            <p className="text-white/40 text-xs mt-1">Sem atrasados, hoje ou prioritários</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto scrollbar-thin">
