@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,8 @@ export function AppointmentModal({
     title: '',
     date: '',
     time: '',
-    notes: ''
+    notes: '',
+    priority: 'Normal'
   });
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(null);
   
@@ -89,6 +89,7 @@ export function AppointmentModal({
         time: formData.time,
         status: 'Pendente',
         notes: formData.notes.trim() || undefined,
+        priority: formData.priority,
         recurrence_rule: recurrenceRule
       });
       
@@ -104,7 +105,8 @@ export function AppointmentModal({
         title: '',
         date: '',
         time: '',
-        notes: ''
+        notes: '',
+        priority: 'Normal'
       });
       setRecurrenceRule(null);
       setModalOpen(false);
