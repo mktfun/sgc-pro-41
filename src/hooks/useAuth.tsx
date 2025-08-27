@@ -133,7 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Erro no logout:', error);
@@ -146,8 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Erro no signOut:', error);
       toast.error('Erro ao fazer logout');
-    } finally {
-      setLoading(false);
     }
   };
 
