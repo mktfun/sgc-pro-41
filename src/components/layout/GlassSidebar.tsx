@@ -113,21 +113,21 @@ export function GlassSidebar() {
       {/* Navigation */}
       <nav className="p-4 space-y-2">
         <SidebarItem icon={Home} label="Dashboard" to="/dashboard" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Users} label="Clientes" to="/clients" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Shield} label="Apólices" to="/policies" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Calendar} label="Agendamentos" to="/appointments" isCollapsed={isCollapsed} />
-        <SidebarItem icon={DollarSign} label="Faturamento" to="/faturamento" isCollapsed={isCollapsed} />
-        <SidebarItem icon={RefreshCw} label="Renovações" to="/renovacoes" isCollapsed={isCollapsed} />
-        <SidebarItem icon={AlertTriangle} label="Sinistros" to="/sinistros" isCollapsed={isCollapsed} />
-        <SidebarItem icon={ClipboardList} label="Tarefas" to="/tasks" isCollapsed={isCollapsed} />
-        <SidebarItem icon={BarChart3} label="Relatórios" to="/reports" isCollapsed={isCollapsed} />
-        <SidebarItem icon={FileSpreadsheet} label="Sincronização Sheets" to="/sheets-sync" isCollapsed={isCollapsed} />
+        <SidebarItem icon={Users} label="Clientes" to="/dashboard/clients" isCollapsed={isCollapsed} />
+        <SidebarItem icon={Shield} label="Apólices" to="/dashboard/policies" isCollapsed={isCollapsed} />
+        <SidebarItem icon={Calendar} label="Agendamentos" to="/dashboard/appointments" isCollapsed={isCollapsed} />
+        <SidebarItem icon={DollarSign} label="Faturamento" to="/dashboard/faturamento" isCollapsed={isCollapsed} />
+        <SidebarItem icon={RefreshCw} label="Renovações" to="/dashboard/renovacoes" isCollapsed={isCollapsed} />
+        <SidebarItem icon={AlertTriangle} label="Sinistros" to="/dashboard/sinistros" isCollapsed={isCollapsed} />
+        <SidebarItem icon={ClipboardList} label="Tarefas" to="/dashboard/tasks" isCollapsed={isCollapsed} />
+        <SidebarItem icon={BarChart3} label="Relatórios" to="/dashboard/reports" isCollapsed={isCollapsed} />
+        <SidebarItem icon={FileSpreadsheet} label="Sincronização Sheets" to="/dashboard/sheets-sync" isCollapsed={isCollapsed} />
       </nav>
 
       {/* Settings at bottom */}
       <div className="absolute bottom-4 left-0 right-0 px-4">
         <div className="border-t border-white/20 pt-4">
-          <SidebarItem icon={Settings} label="Configurações" to="/settings" isCollapsed={isCollapsed} />
+          <SidebarItem icon={Settings} label="Configurações" to="/dashboard/settings" isCollapsed={isCollapsed} />
         </div>
       </div>
     </div>
