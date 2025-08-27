@@ -1,4 +1,3 @@
-
 import { 
   LayoutDashboard, 
   FileText, 
@@ -12,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { MobileWorkspaceModal } from './MobileWorkspaceModal';
 
 const quickNavItems = [
-  { icon: LayoutDashboard, path: '/', label: 'Home' },
+  { icon: LayoutDashboard, path: '/dashboard', label: 'Home' },
   { icon: FileText, path: '/policies', label: 'Apólices' },
   { icon: Users, path: '/clients', label: 'Clientes' },
   { icon: Calendar, path: '/appointments', label: 'Agenda' },
