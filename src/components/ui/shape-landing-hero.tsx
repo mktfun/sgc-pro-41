@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { Circle, ArrowRight, Shield, FileText, Users } from "lucide-react";
+import { Circle, ArrowRight, Shield, FileText, Users, Calendar, DollarSign, BarChart3, CheckCircle, Clock, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
