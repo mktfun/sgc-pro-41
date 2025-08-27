@@ -258,7 +258,7 @@ export default function Tasks() {
                       <TableCell>
                         {cliente ? (
                           <Link 
-                            to={`/clients/${cliente.id}`} 
+                            to={`/dashboard/clients/${cliente.id}`} 
                             className="text-blue-400 hover:underline"
                           >
                             {cliente.name}
