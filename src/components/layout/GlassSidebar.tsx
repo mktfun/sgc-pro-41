@@ -1,135 +1,145 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { 
-  Home, 
-  Users, 
-  Shield, 
-  Calendar, 
-  DollarSign, 
-  RefreshCw, 
-  AlertTriangle, 
-  ClipboardList, 
-  BarChart3, 
-  Settings, 
-  ChevronLeft, 
-  ChevronRight,
-  FileSpreadsheet
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Calendar,
+  DollarSign,
+  Settings,
+  ChevronLeft,
+  Menu,
+  ListTodo,
+  RefreshCw,
+  BarChart3,
+  ShieldAlert,
+  LucideIcon
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-interface SidebarItemProps {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  to: string;
-  isCollapsed?: boolean;
-}
-
-function SidebarItem({ icon: Icon, label, to, isCollapsed }: SidebarItemProps) {
-  const location = useLocation();
-  const isActive = location.pathname === to;
-
-  const content = (
-    <Link
-      to={to}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 group",
-        "hover:bg-white/10 hover:backdrop-blur-sm",
-        isActive && "bg-white/20 backdrop-blur-sm shadow-lg border border-white/20",
-        isCollapsed && "justify-center px-2"
-      )}
-    >
-      <Icon className={cn(
-        "h-5 w-5 transition-colors",
-        isActive ? "text-white" : "text-white/70 group-hover:text-white"
-      )} />
-      {!isCollapsed && (
-        <span className={cn(
-          "font-medium transition-colors",
-          isActive ? "text-white" : "text-white/70 group-hover:text-white"
-        )}>
-          {label}
-        </span>
-      )}
-    </Link>
-  );
-
-  if (isCollapsed) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {content}
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>{label}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+const menuSections = [
+  {
+    title: 'Visão Geral',
+    items: [
+      { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+      { id: 'reports', name: 'Relatórios', icon: BarChart3, path: '/reports' },
+      { id: 'billing', name: 'Faturamento', icon: DollarSign, path: '/faturamento' },
+    ]
+  },
+  {
+    title: 'Operacional',
+    items: [
+      { id: 'policies', name: 'Apólices', icon: FileText, path: '/policies' },
+      { id: 'clients', name: 'Clientes', icon: Users, path: '/clients' },
+      { id: 'appointments', name: 'Agendamentos', icon: Calendar, path: '/appointments' },
+      { id: 'tasks', name: 'Tarefas', icon: ListTodo, path: '/tasks' },
+      { id: 'renovacoes', name: 'Renovações', icon: RefreshCw, path: '/renovacoes' },
+      { id: 'sinistros', name: 'Sinistros', icon: ShieldAlert, path: '/sinistros' },
+    ]
+  },
+  {
+    title: 'Sistema',
+    items: [
+      { id: 'settings', name: 'Configurações', icon: Settings, path: '/settings' },
+    ]
   }
-
-  return content;
-}
+];
 
 export function GlassSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed));
+  }, [isCollapsed]);
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   return (
-    <div className={cn(
-      "fixed left-0 top-0 h-full z-40 transition-all duration-300",
-      "bg-gradient-to-b from-blue-600/90 to-purple-700/90",
-      "backdrop-blur-xl border-r border-white/20",
-      "shadow-2xl",
-      isCollapsed ? "w-16" : "w-64"
-    )}>
+    <div 
+      className={cn(
+        "h-full transition-all duration-300 ease-out flex-shrink-0 relative",
+        "bg-black/20 backdrop-blur-xl border-r border-white/10",
+        isCollapsed ? "w-16" : "w-64"
+      )}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-white/20">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-white text-lg">SGC Pro</span>
-            </div>
+      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+        {!isCollapsed && (
+          <h1 className="text-lg font-semibold text-white">
+            SGC Pro
+          </h1>
+        )}
+        
+        <button
+          onClick={toggleSidebar}
+          className={cn(
+            "p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors",
+            "text-white/80 hover:text-white",
+            isCollapsed && "mx-auto"
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-white/70 hover:text-white hover:bg-white/10 p-1 h-8 w-8"
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        >
+          {isCollapsed ? (
+            <Menu className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-2">
-        <SidebarItem icon={Home} label="Dashboard" to="/dashboard" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Users} label="Clientes" to="/dashboard/clients" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Shield} label="Apólices" to="/dashboard/policies" isCollapsed={isCollapsed} />
-        <SidebarItem icon={Calendar} label="Agendamentos" to="/dashboard/appointments" isCollapsed={isCollapsed} />
-        <SidebarItem icon={DollarSign} label="Faturamento" to="/dashboard/faturamento" isCollapsed={isCollapsed} />
-        <SidebarItem icon={RefreshCw} label="Renovações" to="/dashboard/renovacoes" isCollapsed={isCollapsed} />
-        <SidebarItem icon={AlertTriangle} label="Sinistros" to="/dashboard/sinistros" isCollapsed={isCollapsed} />
-        <SidebarItem icon={ClipboardList} label="Tarefas" to="/dashboard/tasks" isCollapsed={isCollapsed} />
-        <SidebarItem icon={BarChart3} label="Relatórios" to="/dashboard/reports" isCollapsed={isCollapsed} />
-        <SidebarItem icon={FileSpreadsheet} label="Sincronização Sheets" to="/dashboard/sheets-sync" isCollapsed={isCollapsed} />
-      </nav>
+      <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+        {menuSections.map((section) => (
+          <div key={section.title} className="space-y-1">
+            {!isCollapsed && (
+              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider px-3 mb-2">
+                {section.title}
+              </h3>
+            )}
+            {section.items.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
 
-      {/* Settings at bottom */}
-      <div className="absolute bottom-4 left-0 right-0 px-4">
-        <div className="border-t border-white/20 pt-4">
-          <SidebarItem icon={Settings} label="Configurações" to="/dashboard/settings" isCollapsed={isCollapsed} />
-        </div>
-      </div>
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigation(item.path)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200",
+                    "text-white/80 hover:text-white hover:bg-white/10",
+                    "focus:outline-none focus:ring-2 focus:ring-white/20",
+                    isActive && "bg-white/15 text-white font-medium",
+                    isCollapsed && "justify-center"
+                  )}
+                  title={isCollapsed ? item.name : undefined}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium">
+                      {item.name}
+                    </span>
+                  )}
+
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="absolute right-0 w-1 h-8 bg-blue-400 rounded-l-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
     </div>
   );
 }

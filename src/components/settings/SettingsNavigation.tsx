@@ -1,3 +1,4 @@
+
 import { NavLink } from 'react-router-dom';
 import { User, Building, Users, Shield, CreditCard } from 'lucide-react';
 import { AppCard } from '@/components/ui/app-card';
@@ -5,31 +6,31 @@ import { AppCard } from '@/components/ui/app-card';
 const navItems = [
   {
     name: 'Meu Perfil',
-    path: '/dashboard/settings/profile',
+    path: '/settings/profile',
     icon: User,
     description: 'Informações pessoais'
   },
   {
     name: 'Corretoras',
-    path: '/dashboard/settings/brokerages',
+    path: '/settings/brokerages',
     icon: Building,
     description: 'Empresas representadas'
   },
   {
     name: 'Produtores',
-    path: '/dashboard/settings/producers',
+    path: '/settings/producers',
     icon: Users,
     description: 'Equipe de vendas'
   },
   {
     name: 'Seguradoras',
-    path: '/dashboard/settings/companies',
+    path: '/settings/companies',
     icon: Shield,
     description: 'Parceiros seguradoras'
   },
   {
     name: 'Transações',
-    path: '/dashboard/settings/transactions',
+    path: '/settings/transactions',
     icon: CreditCard,
     description: 'Tipos de operações'
   }

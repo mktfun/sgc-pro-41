@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, FileText, Upload, Calendar, DollarSign, Building2, User, Phone, Mail, MapPin, Edit, Calculator, ArrowRight, Ban } from 'lucide-react';
@@ -340,7 +341,7 @@ export default function PolicyDetails() {
                         </div>
                       </div>
                     </div>
-                    <Link to={`/dashboard/clients/${client.id}`}>
+                    <Link to={`/clients/${client.id}`}>
                       <Button variant="outline" size="sm">
                         Ver Detalhes
                       </Button>
