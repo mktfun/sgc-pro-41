@@ -72,7 +72,7 @@ function App() {
 
                   {/* Rotas de configurações com layout próprio */}
                   <Route path="settings" element={<SettingsLayout />}>
-                    <Route index element={<Navigate to="/dashboard/settings/profile" replace />} />
+                    <Route index element={<ProfileSettings />} />
                     <Route path="profile" element={<ProfileSettings />} />
                     <Route path="brokerages" element={<BrokerageSettings />} />
                     <Route path="producers" element={<ProducerSettings />} />
