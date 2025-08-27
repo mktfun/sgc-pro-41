@@ -8,9 +8,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { isBirthdayToday, isWithinDays, isInMonth, isToday } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatCurrency';
-import { format, differenceInDays, eachDayOfInterval, parseISO } from 'date-fns';
+import { format, differenceInDays, eachDayOfInterval, parseISO, isWithinInterval, isSameMonth, isSameYear } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
-export function useDashboardMetrics() {
+interface UseDashboardMetricsProps {
+  dateRange?: DateRange;
+}
+
+export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
+  const { dateRange } = options;
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { processClients } = useBirthdayGreetings();
@@ -21,6 +27,14 @@ export function useDashboardMetrics() {
   const { clients, loading: clientsLoading } = useClients();
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { getCompanyName } = useCompanyNames();
+
+  // Helper function to check if a date is within the selected range
+  const isDateInRange = (date: string | Date) => {
+    if (!dateRange?.from || !dateRange?.to) return true;
+    
+    const checkDate = typeof date === 'string' ? new Date(date) : date;
+    return isWithinInterval(checkDate, { start: dateRange.from, end: dateRange.to });
+  };
 
   // 🎂 NOVA QUERY: Buscar saudações já enviadas este ano
   const { data: sentGreetings = [], isLoading: greetingsLoading } = useQuery({
@@ -48,63 +62,75 @@ export function useDashboardMetrics() {
   // 🔥 KPI 1: CLIENTES ATIVOS - MEMOIZAÇÃO INDIVIDUAL
   const activeClients = useMemo(() => {
     if (clientsLoading) return 0;
-    console.log('🔢 Calculando clientes ativos:', clients.length);
-    return clients.length;
-  }, [clients, clientsLoading]);
+    
+    // Filter clients by date range if provided
+    let filteredClients = clients;
+    if (dateRange?.from && dateRange?.to) {
+      filteredClients = clients.filter(client => isDateInRange(client.createdAt));
+    }
+    
+    console.log('🔢 Calculando clientes ativos com filtro:', filteredClients.length);
+    return filteredClients.length;
+  }, [clients, clientsLoading, dateRange]);
 
   // 🔥 KPI 2: RENOVAÇÕES EM 30 DIAS - MEMOIZAÇÃO INDIVIDUAL
   const renewals30Days = useMemo(() => {
     if (policiesLoading) return 0;
     
-    const renewalsCount = policies.filter(policy => 
+    let filteredPolicies = policies;
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    }
+    
+    const renewalsCount = filteredPolicies.filter(policy => 
       policy.status === 'Ativa' && isWithinDays(policy.expirationDate, 30)
     ).length;
     
-    console.log('📅 Calculando renovações em 30 dias:', renewalsCount);
+    console.log('📅 Calculando renovações em 30 dias com filtro:', renewalsCount);
     return renewalsCount;
-  }, [policies, policiesLoading]);
+  }, [policies, policiesLoading, dateRange]);
 
   // 🔥 KPI 3: RENOVAÇÕES EM 90 DIAS - MEMOIZAÇÃO INDIVIDUAL
   const renewals90Days = useMemo(() => {
     if (policiesLoading) return 0;
     
-    const renewalsCount = policies.filter(policy => 
+    let filteredPolicies = policies;
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    }
+    
+    const renewalsCount = filteredPolicies.filter(policy => 
       policy.status === 'Ativa' && isWithinDays(policy.expirationDate, 90)
     ).length;
     
-    console.log('📅 Calculando renovações em 90 dias:', renewalsCount);
+    console.log('📅 Calculando renovações em 90 dias com filtro:', renewalsCount);
     return renewalsCount;
-  }, [policies, policiesLoading]);
+  }, [policies, policiesLoading, dateRange]);
 
-  // 🔥 KPI 4: COMISSÃO DO MÊS ATUAL - CORREÇÃO CRÍTICA
+  // 🔥 KPI 4: COMISSÃO DO MÊS ATUAL OU PERÍODO FILTRADO
   const comissaoMesAtual = useMemo(() => {
     if (transactionsLoading) return 0;
     
-    const comissaoTotal = transactions
+    let filteredTransactions = transactions;
+    
+    // Se há filtro de data, usar o filtro; senão, usar mês atual
+    if (dateRange?.from && dateRange?.to) {
+      filteredTransactions = transactions.filter(t => isDateInRange(t.date));
+    } else {
+      filteredTransactions = transactions.filter(t => isInMonth(t.date, 0));
+    }
+    
+    const comissaoTotal = filteredTransactions
       .filter(t => {
-        const isThisMonth = isInMonth(t.date, 0);
         const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
         const isReceita = t.nature === 'RECEITA';
-        
-        console.log('💰 Transação:', {
-          id: t.id,
-          amount: t.amount,
-          date: t.date,
-          status: t.status,
-          nature: t.nature,
-          isThisMonth,
-          isRealizado,
-          isReceita,
-          incluir: isThisMonth && isRealizado && isReceita
-        });
-        
-        return isThisMonth && isRealizado && isReceita;
+        return isRealizado && isReceita;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    console.log('💰 Comissão calculada do mês atual:', comissaoTotal);
+    console.log('💰 Comissão calculada com filtro:', comissaoTotal);
     return comissaoTotal;
-  }, [transactions, transactionsLoading]);
+  }, [transactions, transactionsLoading, dateRange]);
 
   // 🔥 KPI 5: COMISSÃO DO MÊS ANTERIOR - CORREÇÃO CRÍTICA
   const comissaoMesAnterior = useMemo(() => {
@@ -124,29 +150,24 @@ export function useDashboardMetrics() {
     return comissaoTotal;
   }, [transactions, transactionsLoading]);
 
-  // 🔥 KPI 6: APÓLICES NOVAS DO MÊS - CORREÇÃO CRÍTICA
+  // 🔥 KPI 6: APÓLICES NOVAS DO PERÍODO
   const apolicesNovasMes = useMemo(() => {
     if (policiesLoading) return 0;
     
-    const apolicesCount = policies.filter(policy => {
-      const isThisMonth = isInMonth(policy.createdAt, 0);
-      const isAtiva = policy.status === 'Ativa';
-      
-      console.log('📋 Apólice nova:', {
-        id: policy.id,
-        status: policy.status,
-        createdAt: policy.createdAt,
-        isThisMonth,
-        isAtiva,
-        incluir: isThisMonth && isAtiva
-      });
-      
-      return isThisMonth && isAtiva;
-    }).length;
+    let filteredPolicies = policies;
+    
+    // Se há filtro de data, usar o filtro; senão, usar mês atual
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    } else {
+      filteredPolicies = policies.filter(policy => isInMonth(policy.createdAt, 0));
+    }
+    
+    const apolicesCount = filteredPolicies.filter(policy => policy.status === 'Ativa').length;
 
-    console.log('📋 Apólices novas do mês calculadas:', apolicesCount);
+    console.log('📋 Apólices novas do período calculadas:', apolicesCount);
     return apolicesCount;
-  }, [policies, policiesLoading]);
+  }, [policies, policiesLoading, dateRange]);
 
   // 🔥 KPI 7: AGENDAMENTOS DE HOJE
   const todaysAppointments = useMemo(() => {
@@ -191,9 +212,16 @@ export function useDashboardMetrics() {
     return aniversariantesHoje; // Simplificado - usar os mesmos dados
   }, [aniversariantesHoje]);
 
-  // 🔥 DADOS PARA GRÁFICOS COM GRANULARIDADE INTELIGENTE
+  // 🔥 DADOS PARA GRÁFICOS COM FILTRO DE DATA
   const monthlyCommissionData = useMemo(() => {
     if (transactionsLoading) return [];
+    
+    let filteredTransactions = transactions;
+    
+    // Se há filtro de data, aplicar filtro
+    if (dateRange?.from && dateRange?.to) {
+      filteredTransactions = transactions.filter(t => isDateInRange(t.date));
+    }
     
     const months = [];
     const today = new Date();
@@ -202,7 +230,7 @@ export function useDashboardMetrics() {
       const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const monthStr = month.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
       
-      const monthlyCommission = transactions
+      const monthlyCommission = filteredTransactions
         .filter(t => {
           const transactionDate = new Date(t.date);
           const sameMonth = transactionDate.getMonth() === month.getMonth();
@@ -220,13 +248,20 @@ export function useDashboardMetrics() {
       });
     }
     
-    console.log('📊 Dados mensais de comissão:', months);
+    console.log('📊 Dados mensais de comissão com filtro:', months);
     return months;
-  }, [transactions, transactionsLoading]);
+  }, [transactions, transactionsLoading, dateRange]);
 
-  // 🆕 GRÁFICO DE CRESCIMENTO COM GRANULARIDADE ADAPTÁVEL
+  // 🆕 GRÁFICO DE CRESCIMENTO COM FILTRO DE DATA
   const monthlyGrowthData = useMemo(() => {
     if (policiesLoading) return [];
+    
+    let filteredPolicies = policies;
+    
+    // Se há filtro de data, aplicar filtro
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    }
     
     const months = [];
     const today = new Date();
@@ -236,7 +271,7 @@ export function useDashboardMetrics() {
       const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const monthStr = month.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
       
-      const novas = policies.filter(policy => {
+      const novas = filteredPolicies.filter(policy => {
         const createdDate = new Date(policy.createdAt);
         const sameMonth = createdDate.getMonth() === month.getMonth();
         const sameYear = createdDate.getFullYear() === month.getFullYear();
@@ -245,7 +280,7 @@ export function useDashboardMetrics() {
         return sameMonth && sameYear && isAtiva;
       }).length;
       
-      const renovadas = policies.filter(policy => {
+      const renovadas = filteredPolicies.filter(policy => {
         const renewalDate = new Date(policy.createdAt);
         const sameMonth = renewalDate.getMonth() === month.getMonth();
         const sameYear = renewalDate.getFullYear() === month.getFullYear();
@@ -261,16 +296,24 @@ export function useDashboardMetrics() {
       });
     }
     
-    console.log('📈 Dados de crescimento mensal:', months);
+    console.log('📈 Dados de crescimento mensal com filtro:', months);
     return months;
-  }, [policies, policiesLoading]);
+  }, [policies, policiesLoading, dateRange]);
 
+  // GRÁFICOS DE PIZZA COM FILTRO DE DATA
   const branchDistributionData = useMemo(() => {
     if (policiesLoading) return [];
     
+    let filteredPolicies = policies;
+    
+    // Aplicar filtro de data se fornecido
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    }
+    
     const branchData: { [key: string]: { count: number; value: number } } = {};
     
-    policies
+    filteredPolicies
       .filter(policy => policy.status === 'Ativa')
       .forEach(policy => {
         const branch = policy.type || 'Não informado';
@@ -310,17 +353,24 @@ export function useDashboardMetrics() {
       distribution = [...mainItems.slice(0, 7), othersData];
     }
     
-    console.log('📊 Distribuição por ramos (por valor):', distribution);
+    console.log('📊 Distribuição por ramos (com filtro de data):', distribution);
     return distribution;
-  }, [policies, policiesLoading]);
+  }, [policies, policiesLoading, dateRange]);
 
-  // 🆕 KPI 10: DISTRIBUIÇÃO POR SEGURADORAS
+  // 🆕 KPI 10: DISTRIBUIÇÃO POR SEGURADORAS COM FILTRO DE DATA
   const companyDistributionData = useMemo(() => {
     if (policiesLoading) return [];
     
+    let filteredPolicies = policies;
+    
+    // Aplicar filtro de data se fornecido
+    if (dateRange?.from && dateRange?.to) {
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+    }
+    
     const companyData: { [key: string]: { count: number; value: number } } = {};
     
-    policies
+    filteredPolicies
       .filter(policy => policy.status === 'Ativa')
       .forEach(policy => {
         const companyId = policy.insuranceCompany || 'Não informado';
@@ -360,9 +410,9 @@ export function useDashboardMetrics() {
       distribution = [...mainItems.slice(0, 7), othersData];
     }
     
-    console.log('📊 Distribuição por seguradoras (por valor):', distribution);
+    console.log('📊 Distribuição por seguradoras (com filtro de data):', distribution);
     return distribution;
-  }, [policies, policiesLoading, getCompanyName]);
+  }, [policies, policiesLoading, getCompanyName, dateRange]);
 
   // 🆕 INSIGHTS DINÂMICOS - ANÁLISE INTELIGENTE DOS DADOS
   const insightRamoPrincipal = useMemo(() => {
@@ -376,19 +426,20 @@ export function useDashboardMetrics() {
     );
     
     if (totalValue === 0) {
-      return 'Sem dados de produção para análise.';
+      return 'Sem dados de produção para análise no período selecionado.';
     }
     
     const percentage = Math.round((principal.valor / totalValue) * 100);
+    const periodText = dateRange?.from && dateRange?.to ? 'no período selecionado' : 'na sua produção';
     
     if (percentage >= 60) {
-      return `O ramo "${principal.ramo}" domina sua produção com ${percentage}% do faturamento. Considere diversificar para reduzir riscos.`;
+      return `O ramo "${principal.ramo}" domina ${periodText} com ${percentage}% do faturamento. Considere diversificar para reduzir riscos.`;
     } else if (percentage >= 40) {
-      return `O ramo "${principal.ramo}" é o carro-chefe, representando ${percentage}% da sua produção total.`;
+      return `O ramo "${principal.ramo}" é o carro-chefe ${periodText}, representando ${percentage}% da produção total.`;
     } else {
-      return `Produção bem diversificada! O ramo líder "${principal.ramo}" representa apenas ${percentage}% do faturamento.`;
+      return `Produção bem diversificada ${periodText}! O ramo líder "${principal.ramo}" representa apenas ${percentage}% do faturamento.`;
     }
-  }, [branchDistributionData, policiesLoading]);
+  }, [branchDistributionData, policiesLoading, dateRange]);
 
   const insightSeguradoraPrincipal = useMemo(() => {
     if (policiesLoading || companyDistributionData.length === 0) {
@@ -401,19 +452,20 @@ export function useDashboardMetrics() {
     );
     
     if (totalValue === 0) {
-      return 'Sem dados de faturamento para análise.';
+      return 'Sem dados de faturamento para análise no período selecionado.';
     }
     
     const percentage = Math.round((principal.valor / totalValue) * 100);
+    const periodText = dateRange?.from && dateRange?.to ? 'no período selecionado' : '';
     
     if (percentage >= 70) {
-      return `Concentração alta: ${principal.seguradora} representa ${percentage}% do faturamento. Diversifique para reduzir dependência.`;
+      return `Concentração alta ${periodText}: ${principal.seguradora} representa ${percentage}% do faturamento. Diversifique para reduzir dependência.`;
     } else if (percentage >= 50) {
-      return `${principal.seguradora} é sua parceira principal com ${percentage}% do faturamento total.`;
+      return `${principal.seguradora} é sua parceira principal ${periodText} com ${percentage}% do faturamento total.`;
     } else {
-      return `Boa distribuição entre seguradoras. ${principal.seguradora} lidera com ${percentage}% do faturamento.`;
+      return `Boa distribuição entre seguradoras ${periodText}. ${principal.seguradora} lidera com ${percentage}% do faturamento.`;
     }
-  }, [companyDistributionData, policiesLoading]);
+  }, [companyDistributionData, policiesLoading, dateRange]);
 
   const insightCrescimento = useMemo(() => {
     if (policiesLoading || monthlyGrowthData.length === 0) {
@@ -434,14 +486,16 @@ export function useDashboardMetrics() {
     const totalUltimoMes = ultimoMes.novas + ultimoMes.renovadas;
     const totalPenultimoMes = penultimoMes.novas + penultimoMes.renovadas;
     
+    const periodText = dateRange?.from && dateRange?.to ? 'no período filtrado' : '';
+    
     if (totalUltimoMes > totalPenultimoMes) {
-      return `Tendência positiva! ${ultimoMes.month} teve ${totalUltimoMes} apólices vs. ${totalPenultimoMes} no mês anterior.`;
+      return `Tendência positiva ${periodText}! ${ultimoMes.month} teve ${totalUltimoMes} apólices vs. ${totalPenultimoMes} no mês anterior.`;
     } else if (totalUltimoMes < totalPenultimoMes) {
-      return `Atenção: queda de ${totalPenultimoMes} para ${totalUltimoMes} apólices entre ${penultimoMes.month} e ${ultimoMes.month}.`;
+      return `Atenção ${periodText}: queda de ${totalPenultimoMes} para ${totalUltimoMes} apólices entre ${penultimoMes.month} e ${ultimoMes.month}.`;
     } else {
-      return `${mesComMaisNovas.month} foi seu melhor mês com ${mesComMaisNovas.novas} novas apólices. Mantenha o ritmo!`;
+      return `${mesComMaisNovas.month} foi seu melhor mês ${periodText} com ${mesComMaisNovas.novas} novas apólices. Mantenha o ritmo!`;
     }
-  }, [monthlyGrowthData, policiesLoading]);
+  }, [monthlyGrowthData, policiesLoading, dateRange]);
 
   // 🆕 INSIGHT GLOBAL - RESUMO ESTRATÉGICO INTELIGENTE
   const dashboardGlobalInsight = useMemo(() => {
@@ -451,14 +505,15 @@ export function useDashboardMetrics() {
 
     // Construir insight baseado nos dados mais críticos
     let insights = [];
+    const periodText = dateRange?.from && dateRange?.to ? 'no período selecionado' : 'este mês';
 
     // 1. ANÁLISE DE CRESCIMENTO (Positiva)
     if (apolicesNovasMes > 0 && comissaoMesAtual > 0) {
-      insights.push(`📈 Forte: ${apolicesNovasMes} apólices novas geraram ${formatCurrency(comissaoMesAtual)}`);
+      insights.push(`📈 Forte: ${apolicesNovasMes} apólices novas geraram ${formatCurrency(comissaoMesAtual)} ${periodText}`);
     } else if (apolicesNovasMes > 0) {
-      insights.push(`📋 Movimento: ${apolicesNovasMes} apólices novas criadas este mês`);
+      insights.push(`📋 Movimento: ${apolicesNovasMes} apólices novas criadas ${periodText}`);
     } else {
-      insights.push(`🎯 Oportunidade: Foque em prospecção - nenhuma apólice nova este mês`);
+      insights.push(`🎯 Oportunidade: Foque em prospecção - nenhuma apólice nova ${periodText}`);
     }
 
     // 2. ANÁLISE DE RISCO (Crítica)
@@ -479,14 +534,14 @@ export function useDashboardMetrics() {
     return insights.join('. ') + '.';
   }, [
     policiesLoading, clientsLoading, transactionsLoading,
-    apolicesNovasMes, comissaoMesAtual, renewals30Days, renewals90Days, aniversariantesHoje
+    apolicesNovasMes, comissaoMesAtual, renewals30Days, renewals90Days, aniversariantesHoje, dateRange
   ]);
 
   // 🔥 ESTADO DE LOADING GERAL
   const isLoading = policiesLoading || clientsLoading || transactionsLoading || greetingsLoading;
 
   // 🔥 LOG FINAL DE VALIDAÇÃO
-  console.log('🎯 RESUMO DOS KPIS CALCULADOS:', {
+  console.log('🎯 RESUMO DOS KPIS CALCULADOS COM FILTRO:', {
     activeClients,
     renewals30Days,
     renewals90Days,
@@ -495,6 +550,7 @@ export function useDashboardMetrics() {
     apolicesNovasMes,
     todaysAppointments,
     aniversariantesHoje: aniversariantesHoje.length,
+    dateRange,
     isLoading
   });
 
