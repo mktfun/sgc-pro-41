@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { HeroGeometric, GeometricPattern, FloatingShapes } from '@/components/ui/shape-landing-hero';
+import { HeroGeometric } from '@/components/ui/shape-landing-hero';
 import { 
   FileText, 
   Shield, 
@@ -74,7 +74,7 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -84,7 +84,7 @@ export default function Index() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">SGC Pro</h1>
-              <p className="text-sm text-slate-300">Sistema de Gestão de Corretor</p>
+              <p className="text-sm text-white/60">Sistema de Gestão de Corretor</p>
             </div>
           </div>
           
@@ -99,35 +99,44 @@ export default function Index() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <HeroGeometric
-        badge="SGC Pro"
-        title1="Transforme Sua"
-        title2="Corretora de Seguros"
-        subtitle="A plataforma mais completa para gestão de corretoras. Aumente sua produtividade, organize seus clientes e maximize seus resultados com tecnologia de ponta."
-      >
-        <Link to="/auth">
-          <Button 
-            size="lg" 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-          >
-            Começar Gratuitamente
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
-        <Button 
-          size="lg" 
-          variant="outline"
-          className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-8 py-4 text-lg transition-all duration-300"
-        >
-          Ver Demonstração
-        </Button>
-      </HeroGeometric>
+      {/* Hero Section with Framer Motion */}
+      <div className="relative">
+        <HeroGeometric
+          badge="SGC Pro"
+          title1="Transforme Sua"
+          title2="Corretora de Seguros"
+        />
+        
+        {/* CTA Buttons positioned over the hero */}
+        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/auth">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+              >
+                Começar Gratuitamente
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-8 py-4 text-lg transition-all duration-300"
+            >
+              Ver Demonstração
+            </Button>
+          </div>
+          
+          <p className="text-white/60 text-center mt-4">
+            A plataforma mais completa para gestão de corretoras de seguros
+          </p>
+        </div>
+      </div>
 
       {/* Trust Section */}
-      <section className="relative py-12 bg-slate-800/50">
-        <GeometricPattern variant="dots" />
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
+      <section className="relative py-12 bg-slate-900/50">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-wrap justify-center items-center gap-12 text-slate-300">
             <div className="flex items-center gap-3">
               <Star className="h-5 w-5 text-yellow-400 fill-current" />
@@ -146,9 +155,8 @@ export default function Index() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-20">
-        <FloatingShapes />
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
+      <section className="relative py-20 bg-slate-800">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 border border-blue-600/30 text-blue-300 text-sm font-medium mb-6">
               <Zap className="w-4 h-4 mr-2" />
@@ -169,7 +177,7 @@ export default function Index() {
             {features.map((feature, index) => (
               <div 
                 key={index} 
-                className="group relative p-8 rounded-2xl bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 hover:border-slate-600/50 transition-all duration-500 hover:scale-105"
+                className="group relative p-8 rounded-2xl bg-slate-700/30 backdrop-blur-sm border border-slate-600/30 hover:border-slate-500/50 transition-all duration-500 hover:scale-105"
               >
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="relative z-10">
@@ -190,9 +198,8 @@ export default function Index() {
       </section>
 
       {/* Stats Section */}
-      <section className="relative py-20 bg-slate-800/30">
-        <GeometricPattern variant="grid" />
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
+      <section className="relative py-20 bg-slate-900">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Resultados que Impressionam
@@ -221,7 +228,7 @@ export default function Index() {
       </section>
 
       {/* Benefits Section */}
-      <section className="relative py-20">
+      <section className="relative py-20 bg-slate-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -256,7 +263,7 @@ export default function Index() {
             
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-3xl blur-xl"></div>
-              <div className="relative p-8 rounded-3xl bg-slate-800/80 backdrop-blur-sm border border-slate-700/50">
+              <div className="relative p-8 rounded-3xl bg-slate-700/50 backdrop-blur-sm border border-slate-600/50">
                 <div className="text-center">
                   <div className="inline-flex p-4 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 mb-6">
                     <Award className="h-8 w-8 text-white" />
@@ -266,19 +273,19 @@ export default function Index() {
                   </h3>
                   
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="p-4 rounded-xl bg-slate-700/50">
+                    <div className="p-4 rounded-xl bg-slate-600/50">
                       <div className="text-3xl font-bold text-blue-400 mb-2">40%</div>
                       <div className="text-slate-300 text-sm">Mais Vendas</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-700/50">
+                    <div className="p-4 rounded-xl bg-slate-600/50">
                       <div className="text-3xl font-bold text-green-400 mb-2">60%</div>
                       <div className="text-slate-300 text-sm">Menos Tempo</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-700/50">
+                    <div className="p-4 rounded-xl bg-slate-600/50">
                       <div className="text-3xl font-bold text-purple-400 mb-2">95%</div>
                       <div className="text-slate-300 text-sm">Satisfação</div>
                     </div>
-                    <div className="p-4 rounded-xl bg-slate-700/50">
+                    <div className="p-4 rounded-xl bg-slate-600/50">
                       <div className="text-3xl font-bold text-yellow-400 mb-2">100%</div>
                       <div className="text-slate-300 text-sm">Suporte</div>
                     </div>
@@ -292,8 +299,7 @@ export default function Index() {
 
       {/* CTA Section */}
       <section className="relative py-20 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
-        <GeometricPattern variant="dots" />
-        <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
+        <div className="max-w-4xl mx-auto px-6 text-center">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-600/20 border border-blue-600/30 text-blue-300 text-sm font-medium mb-6">
             <Zap className="w-4 h-4 mr-2 animate-pulse" />
             Oferta Limitada
@@ -315,7 +321,7 @@ export default function Index() {
             <Link to="/auth">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 text-lg font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
               >
                 Começar Agora - Grátis
                 <ChevronRight className="ml-2 h-5 w-5" />
@@ -337,7 +343,7 @@ export default function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="relative py-12 bg-slate-800/50 border-t border-slate-700/50">
+      <footer className="relative py-12 bg-slate-900 border-t border-slate-700/50">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
             <div className="p-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600">
