@@ -10,7 +10,7 @@ import { isBirthdayToday, isWithinDays, isInMonth, isToday } from '@/utils/dateU
 import { formatCurrency } from '@/utils/formatCurrency';
 import { format, differenceInDays, eachDayOfInterval, parseISO, isWithinInterval, isSameMonth, isSameYear, startOfDay, endOfDay, isAfter, isBefore } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import { calculateCommissionValue, getCommissionRateByType } from '@/utils/commissionRates';
+import { useRealCommissionRates } from '@/hooks/useRealCommissionRates';
 
 interface UseDashboardMetricsProps {
   dateRange?: DateRange;
@@ -21,13 +21,16 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { processClients } = useBirthdayGreetings();
-  
+
   // Use Supabase hooks directly instead of store
   const { policies, loading: policiesLoading } = usePolicies();
   const { appointments } = useAppointments();
   const { clients, loading: clientsLoading } = useClients();
   const { transactions, loading: transactionsLoading } = useTransactions();
   const { getCompanyName } = useCompanyNames();
+
+  // Hook para taxas de comissão reais baseadas nos dados da corretora
+  const { calculateCommissionValue, hasReliableData, stats } = useRealCommissionRates();
 
   // Helper function to check if a date is within the selected range
   const isDateInRange = (date: string | Date) => {
