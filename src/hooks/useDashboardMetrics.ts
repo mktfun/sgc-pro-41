@@ -30,7 +30,14 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
   const { getCompanyName } = useCompanyNames();
 
   // Hook para taxas de comissão reais baseadas nos dados da corretora
-  const { calculateCommissionValue, hasReliableData, stats } = useRealCommissionRates();
+  const {
+    calculateCommissionValue,
+    hasReliableData,
+    stats,
+    commissionRatesReport,
+    dataCoverage,
+    getOverallAverageRate
+  } = useRealCommissionRates();
 
   // Helper function to check if a date is within the selected range
   const isDateInRange = (date: string | Date) => {
@@ -656,6 +663,25 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     insightSeguradoraPrincipal,
     insightCrescimento,
     dashboardGlobalInsight,
+
+    // Informações sobre taxas de comissão reais calculadas dinamicamente
+    commissionRates: {
+      // Se há dados suficientes para confiar nas taxas calculadas
+      hasReliableData,
+
+      // Estatísticas resumidas das taxas de comissão
+      stats,
+
+      // Relatório detalhado por tipo de apólice
+      report: commissionRatesReport,
+
+      // Cobertura e validação dos dados
+      dataCoverage,
+
+      // Taxa média geral da corretora
+      overallAverageRate: getOverallAverageRate
+    },
+
     isLoading
   };
 }
