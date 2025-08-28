@@ -1,5 +1,5 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -121,27 +121,60 @@
   }
 }
 
-/* OPERAÇÃO AQUÁRIO - LIQUID GLASS SYSTEM PREMIUM */
+/*
+🔒🔒🔒 SEÇÃO ULTRA PROTEGIDA - NÃO ALTERAR 🔒🔒🔒
+⚠️  OPERAÇÃO AQUÁRIO - LIQUID GLASS SYSTEM PREMIUM ⚠️
+❌ QUALQUER ALTERAÇÃO AQUI QUEBRA TODO O SISTEMA VISUAL ❌
+
+RESPONSÁVEL: Sistema crítico de efeitos glass
+ÚLTIMA ALTERAÇÃO: Funcionando perfeitamente
+PRÓXIMA MANUTENÇÃO: Apenas em emergência
+
+DEPENDÊNCIAS CRÍTICAS:
+- useGlassEffect.ts (variáveis --x e --y)
+- AppCard.tsx (classe glass-component)
+- KpiCard.tsx (herda estes estilos)
+- Todos os componentes do dashboard
+
+⚠️ ANTES DE ALTERAR, LEIA: /PROTECTION.md ⚠️
+*/
+
 .glass-component {
+  /* 🎯 FUNDO SEMI-TRANSPARENTE CALIBRADO - NÃO ALTERAR */
   background: rgba(40, 40, 60, 0.55);
+
+  /* 🎯 BLUR CRÍTICO PARA EFEITO GLASS - NÃO ALTERAR */
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
+
+  /* 🎯 BORDAS GLASS PREMIUM - NÃO ALTERAR */
   border: 1px solid rgba(255, 255, 255, 0.12);
+
+  /* 🎯 SOMBRA PROFUNDA PARA FLUTUAÇÃO - NÃO ALTERAR */
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+
+  /* 🎯 ESTRUTURA BÁSICA - NÃO ALTERAR */
   border-radius: 16px;
   position: relative;
   overflow: hidden;
 }
 
+/* 🌟 EFEITO MÁGICO - BRILHO QUE SEGUE O MOUSE 🌟 */
 .glass-component::before {
   content: '';
   position: absolute;
+
+  /* 🎯 VARIÁVEIS DINÂMICAS DO MOUSE - CRÍTICO */
   top: var(--y, 50%);
   left: var(--x, 50%);
+
   transform: translate(-50%, -50%);
   width: 300px;
   height: 300px;
+
+  /* 🎯 GRADIENTE RADIAL MÁGICO - NÃO ALTERAR */
   background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
@@ -150,6 +183,8 @@
 .glass-component:hover::before {
   opacity: 1;
 }
+
+/* 🔒🔒🔒 FIM DA SEÇÃO PROTEGIDA 🔒🔒🔒 */
 
 /* PREMIUM GLASS SIDEBAR SYSTEM */
 .glass-sidebar-premium {
@@ -407,6 +442,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
+
 /* Animações suaves para o dock */
 @keyframes float-in {
   0% {
@@ -438,229 +474,4 @@
   animation-fill-mode: both;
 }
 
-.slide-in-from-bottom-2 {
-  animation-name: slide-in-from-bottom-2;
-}
 
-.duration-300 {
-  animation-duration: 300ms;
-}
-
-.ease-out {
-  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-}
-
-/* ESTILIZAÇÃO DARK MODE PARA O FULLCALENDAR */
-.fc {
-  --fc-border-color: hsl(var(--border));
-  --fc-today-bg-color: hsl(var(--accent) / 0.3);
-  color: hsl(var(--foreground));
-}
-.fc .fc-col-header-cell-cushion {
-  color: hsl(var(--muted-foreground));
-  font-weight: 600;
-  text-decoration: none;
-}
-.fc .fc-daygrid-day-number, .fc .fc-list-day-text, .fc .fc-list-day-side-text {
-  color: hsl(var(--foreground));
-  text-decoration: none;
-}
-.fc .fc-day-other .fc-daygrid-day-number {
-  color: hsl(var(--muted-foreground) / 0.5);
-}
-.fc .fc-daygrid-event {
-  background-color: hsl(var(--primary) / 0.2);
-  border: 1px solid hsl(var(--primary) / 0.5);
-  padding: 2px 4px;
-  border-radius: var(--radius);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: hsl(var(--primary-foreground));
-}
-.fc .fc-event-title {
-  color: hsl(var(--primary-foreground));
-}
-.fc-theme-standard .fc-scrollgrid {
-  border: 1px solid hsl(var(--border));
-}
-.fc-theme-standard th, .fc-theme-standard td {
-  border: 1px solid hsl(var(--border));
-}
-.fc .fc-list-event:hover td {
-  background-color: hsl(var(--accent) / 0.3);
-}
-
-/* SISTEMA PREMIUM DE CABEÇALHOS DA AGENDA - VERSÃO GLASSMORPHISM 3.0 */
-.fc-theme-standard .fc-list-day-cushion {
-  /* Glassmorphism Premium com Gradiente Duplo */
-  background: linear-gradient(
-    135deg,
-    rgba(40, 50, 80, 0.95) 0%,
-    rgba(30, 40, 70, 0.85) 50%,
-    rgba(35, 45, 75, 0.90) 100%
-  ) !important;
-  
-  /* Backdrop Filter Premium */
-  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-  backdrop-filter: blur(16px) saturate(150%) !important;
-  
-  /* Bordas com Efeito Holográfico */
-  border: 1px solid transparent !important;
-  border-image: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.3) 0%,
-    rgba(100, 200, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 100%
-  ) 1 !important;
-  
-  /* Sombras Múltiplas para Profundidade */
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-    0 4px 16px rgba(100, 200, 255, 0.1) !important;
-  
-  /* Espaçamento Premium */
-  padding: 16px 20px !important;
-  margin: 0 !important;
-  
-  /* Transições Suaves */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  
-  /* Posicionamento Relativo para Efeitos */
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-/* Efeito de Brilho Holográfico no Hover */
-.fc-theme-standard .fc-list-day-cushion::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  ) !important;
-  transition: left 0.6s ease !important;
-  pointer-events: none !important;
-}
-
-.fc-theme-standard .fc-list-day-cushion:hover::before {
-  left: 100% !important;
-}
-
-/* Efeito de Hover Premium */
-.fc-theme-standard .fc-list-day-cushion:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(50, 60, 90, 0.95) 0%,
-    rgba(40, 50, 80, 0.90) 50%,
-    rgba(45, 55, 85, 0.95) 100%
-  ) !important;
-  
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
-    0 6px 24px rgba(100, 200, 255, 0.15) !important;
-  
-  transform: translateY(-1px) !important;
-}
-
-/* Tipografia Premium para Dias da Semana */
-.fc-theme-standard .fc-list-day-text {
-  color: #f1f5f9 !important; /* Branco Premium */
-  font-weight: 700 !important;
-  font-size: 1rem !important;
-  text-transform: capitalize !important;
-  letter-spacing: 0.025em !important;
-  
-  /* Sombra de Texto Premium */
-  text-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 0 8px rgba(100, 200, 255, 0.3) !important;
-  
-  /* Filtro para Brilho */
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.1)) !important;
-}
-
-/* Tipografia Premium para Datas */
-.fc-theme-standard .fc-list-day-side-text {
-  color: #e2e8f0 !important; /* Cinza Claro Premium */
-  font-weight: 600 !important;
-  font-size: 0.95rem !important;
-  
-  /* Sombra de Texto Sutil */
-  text-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 0 6px rgba(100, 200, 255, 0.2) !important;
-  
-  /* Efeito de Opacidade Dinâmica */
-  opacity: 0.9 !important;
-  transition: opacity 0.3s ease !important;
-}
-
-/* Hover Effect para Texto da Data */
-.fc-theme-standard .fc-list-day-cushion:hover .fc-list-day-side-text {
-  opacity: 1 !important;
-  color: #f8fafc !important;
-}
-
-/* Animação de Entrada para Cabeçalhos */
-.fc-theme-standard .fc-list-day-cushion {
-  animation: slideInFromLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-@keyframes slideInFromLeft {
-  0% {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Responsividade Premium */
-@media (max-width: 768px) {
-  .fc-theme-standard .fc-list-day-cushion {
-    padding: 12px 16px !important;
-  }
-  
-  .fc-theme-standard .fc-list-day-text {
-    font-size: 0.9rem !important;
-  }
-  
-  .fc-theme-standard .fc-list-day-side-text {
-    font-size: 0.85rem !important;
-  }
-}
-
-/* Integração com Eventos */
-.fc .fc-list-event {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  transition: all 0.3s ease !important;
-}
-
-.fc .fc-list-event:hover {
-  background: rgba(30, 41, 59, 0.8) !important;
-  transform: translateX(4px) !important;
-}
-
-/* Melhorias para Eventos na Lista */
-.fc .fc-list-event-title {
-  color: #e2e8f0 !important;
-  font-weight: 500 !important;
-}
-
-.fc .fc-list-event-time {
-  color: #94a3b8 !important;
-  font-weight: 600 !important;
-}
