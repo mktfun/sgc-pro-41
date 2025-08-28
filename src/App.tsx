@@ -22,6 +22,7 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
+import ModernMobileMenuDemo from "./pages/ModernMobileMenuDemo";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import BrokerageSettings from "./pages/settings/BrokerageSettings";
 import ProducerSettings from "./pages/settings/ProducerSettings";
@@ -77,6 +78,7 @@ function App() {
                   <Route path="renovacoes" element={<Renovacoes />} />
                   <Route path="sinistros" element={<Sinistros />} />
                   <Route path="reports" element={<Reports />} />
+                  <Route path="demo/mobile-menu" element={<ModernMobileMenuDemo />} />
                   
                   {/* Rotas de configurações com layout próprio */}
                   <Route path="settings" element={<SettingsLayout />}>
