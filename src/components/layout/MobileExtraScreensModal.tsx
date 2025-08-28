@@ -62,9 +62,9 @@ export function MobileExtraScreensModal() {
           <Grid3X3 className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent 
-        side="bottom" 
-        className="bg-slate-900/95 backdrop-blur-xl border-slate-700/50 rounded-t-2xl"
+      <SheetContent
+        side="bottom"
+        className="mobile-extra-screens-content rounded-t-2xl"
       >
         <div className="py-6">
           <SheetHeader className="mb-6">
@@ -72,7 +72,7 @@ export function MobileExtraScreensModal() {
               Todas as Telas
             </SheetTitle>
           </SheetHeader>
-          
+
           <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
             {extraScreens.map((screen) => {
               const IconComponent = screen.icon;
@@ -80,10 +80,10 @@ export function MobileExtraScreensModal() {
                 <Button
                   key={screen.path}
                   variant="ghost"
-                  className="h-auto p-4 flex flex-col items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 hover:scale-105"
+                  className="mobile-extra-screen-item h-auto p-4 flex flex-col items-center gap-3 rounded-xl"
                   onClick={() => handleScreenClick(screen.path)}
                 >
-                  <div className="p-3 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+                  <div className="mobile-extra-screen-icon p-3 rounded-full">
                     <IconComponent className="h-6 w-6 text-white" />
                   </div>
                   <div className="text-center">
