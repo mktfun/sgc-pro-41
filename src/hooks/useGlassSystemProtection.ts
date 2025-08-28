@@ -74,15 +74,14 @@ export function useGlassSystemProtection() {
 
     // 🔍 Executar verificações após carregamento
     const timer = setTimeout(() => {
-      console.log('🔍 Executando verificação de proteção do sistema Glass...');
-
       const cssOk = checkGlassCSS();
       const effectOk = checkGlassEffect();
 
       if (cssOk && effectOk) {
-        console.log('🌟 ✅ OPERAÇÃO AQUÁRIO: Sistema Liquid Glass 100% operacional! ✅ 🌟');
-        console.log('🎯 Efeito glass, backdrop-filter e mouse tracking funcionando');
+        // ✅ Tudo funcionando - log silencioso
+        console.log('🌟 OPERAÇÃO AQUÁRIO: Sistema Glass operacional');
       } else {
+        // ❌ Só alerta se houver problemas reais
         console.error('❌ Sistema Liquid Glass com problemas detectados!');
         if (!cssOk) {
           console.error('🔴 Problema: CSS .glass-component não carregado corretamente');
@@ -92,7 +91,7 @@ export function useGlassSystemProtection() {
         }
         console.error('📖 Consulte /PROTECTION.md para correção');
       }
-    }, 1500); // Dar mais tempo para carregar
+    }, 2000); // Dar tempo suficiente para carregar tudo
 
     return () => clearTimeout(timer);
   }, []);
