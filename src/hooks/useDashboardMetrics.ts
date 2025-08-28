@@ -450,11 +450,18 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
       });
 
     // Converter para array e ordenar por valor
-    let distribution = Object.entries(companyData).map(([companyId, data]) => ({
-      seguradora: companyId === 'Não informado' ? 'Não informado' : getCompanyName(companyId),
-      total: data.count,
-      valor: data.value
-    })).sort((a, b) => b.valor - a.valor);
+    let distribution = Object.entries(companyData).map(([companyId, data]) => {
+      // Calcular taxa média de comissão para esta seguradora
+      const avgCommissionRate = data.value > 0 ? (data.commission / data.value) * 100 : 0;
+
+      return {
+        seguradora: companyId === 'Não informado' ? 'Não informado' : getCompanyName(companyId),
+        total: data.count,
+        valor: data.value,
+        valorComissao: data.commission,
+        taxaMediaComissao: avgCommissionRate
+      };
+    }).sort((a, b) => b.valor - a.valor);
 
     // Agrupar itens pequenos (menos de 5% do total de valor) em "Outros"
     const totalValue = distribution.reduce((sum, item) => sum + item.valor, 0);
@@ -468,11 +475,18 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
         (acc, item) => ({
           seguradora: 'Outros',
           total: acc.total + item.total,
-          valor: acc.valor + item.valor
+          valor: acc.valor + item.valor,
+          valorComissao: acc.valorComissao + item.valorComissao,
+          taxaMediaComissao: 0 // Será recalculado abaixo
         }),
-        { seguradora: 'Outros', total: 0, valor: 0 }
+        { seguradora: 'Outros', total: 0, valor: 0, valorComissao: 0, taxaMediaComissao: 0 }
       );
-      
+
+      // Recalcular taxa média de comissão para "Outros"
+      if (othersData.valor > 0) {
+        othersData.taxaMediaComissao = (othersData.valorComissao / othersData.valor) * 100;
+      }
+
       distribution = [...mainItems.slice(0, 7), othersData];
     }
     
