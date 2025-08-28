@@ -8,7 +8,7 @@ import {
   Calendar,
   BarChart3
 } from 'lucide-react';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const navigationItems: InteractiveMenuItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard },
@@ -76,7 +76,7 @@ export function ModernMobileNav() {
 export function EnhancedMobileFloatingNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   // Don't render on desktop
   if (!isMobile) {
@@ -93,7 +93,7 @@ export function EnhancedMobileFloatingNav() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
       <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-xl">
-        <InteractiveMenu 
+        <InteractiveMenu
           items={navigationItems}
           accentColor="#3b82f6"
           onItemClick={handleItemClick}
@@ -107,7 +107,7 @@ export function EnhancedMobileFloatingNav() {
 export function CompactMobileNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   const compactItems: InteractiveMenuItem[] = [
     { label: 'Home', icon: LayoutDashboard },
