@@ -94,7 +94,7 @@ export function EnhancedMobileFloatingNav() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-3 shadow-xl">
+      <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl shadow-black/50 backdrop-saturate-150">
         <InteractiveMenu
           items={navigationItems}
           accentColor="#3b82f6"
@@ -139,11 +139,13 @@ export function CompactMobileNav() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
       <div className="max-w-xs mx-auto">
-        <InteractiveMenu 
-          items={compactItems}
-          accentColor="hsl(var(--accent-foreground))"
-          onItemClick={handleItemClick}
-        />
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2 shadow-2xl shadow-black/50 backdrop-saturate-150">
+          <InteractiveMenu
+            items={compactItems}
+            accentColor="hsl(var(--accent-foreground))"
+            onItemClick={handleItemClick}
+          />
+        </div>
       </div>
     </div>
   );
