@@ -32,7 +32,7 @@ export function useGlassSystemProtection() {
       return hasBackdropFilter && hasBackground;
     };
 
-    // �� Verificar se hook useGlassEffect está funcionando
+    // 🔍 Verificar se hook useGlassEffect está funcionando
     const checkGlassEffect = () => {
       const glassElements = document.querySelectorAll('.glass-component');
 
@@ -60,7 +60,6 @@ export function useGlassSystemProtection() {
       const y = firstElement.style.getPropertyValue('--y');
 
       if (x && y) {
-        console.log('✅ useGlassEffect funcionando - variáveis CSS definidas com sucesso');
         // Limpar teste
         setTimeout(() => {
           firstElement.style.removeProperty('--x');
