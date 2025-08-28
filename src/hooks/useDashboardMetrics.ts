@@ -10,6 +10,7 @@ import { isBirthdayToday, isWithinDays, isInMonth, isToday } from '@/utils/dateU
 import { formatCurrency } from '@/utils/formatCurrency';
 import { format, differenceInDays, eachDayOfInterval, parseISO, isWithinInterval, isSameMonth, isSameYear, startOfDay, endOfDay, isAfter, isBefore } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { calculateCommissionValue, getCommissionRateByType } from '@/utils/commissionRates';
 
 interface UseDashboardMetricsProps {
   dateRange?: DateRange;
