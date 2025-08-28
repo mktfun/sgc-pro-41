@@ -122,9 +122,14 @@
 
 /* OPERAÇÃO AQUÁRIO - LIQUID GLASS SYSTEM PREMIUM */
 .glass-component {
+  background: rgba(40, 40, 60, 0.55);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
 }
 
 .glass-component::before {
