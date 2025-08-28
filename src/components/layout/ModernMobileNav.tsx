@@ -63,7 +63,7 @@ export function ModernMobileNav() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:hidden">
       <div className="max-w-sm mx-auto">
-        <GlassCard className="p-2">
+        <GlassCard className="p-2 transition-all duration-300 hover:bg-white/15 hover:shadow-xl">
           <InteractiveMenu
             items={navigationItems}
             accentColor="hsl(var(--chart-1))"
