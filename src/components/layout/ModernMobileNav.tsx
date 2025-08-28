@@ -16,7 +16,7 @@ const navigationItems: InteractiveMenuItem[] = [
   { label: 'Apólices', icon: FileText },
   { label: 'Clientes', icon: Users },
   { label: 'Agenda', icon: Calendar },
-  { label: 'Relat��rios', icon: BarChart3 },
+  { label: 'Relatórios', icon: BarChart3 },
 ];
 
 // Path mapping for navigation
@@ -63,13 +63,13 @@ export function ModernMobileNav() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:hidden">
       <div className="max-w-sm mx-auto">
-        <div className="liquid-glass-dock p-2">
+        <GlassCard className="p-2">
           <InteractiveMenu
             items={navigationItems}
-            accentColor="hsl(var(--chart-2))"
+            accentColor="hsl(var(--chart-1))"
             onItemClick={handleItemClick}
           />
-        </div>
+        </GlassCard>
       </div>
     </div>
   );
@@ -95,13 +95,13 @@ export function EnhancedMobileFloatingNav() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
-      <div className="liquid-glass-dock p-3">
+      <GlassCard className="p-3">
         <InteractiveMenu
           items={navigationItems}
-          accentColor="#3b82f6"
+          accentColor="hsl(var(--chart-1))"
           onItemClick={handleItemClick}
         />
-      </div>
+      </GlassCard>
     </div>
   );
 }
@@ -140,13 +140,13 @@ export function CompactMobileNav() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50">
       <div className="max-w-xs mx-auto">
-        <div className="liquid-glass-dock p-2">
+        <GlassCard className="p-2">
           <InteractiveMenu
             items={compactItems}
-            accentColor="hsl(var(--accent-foreground))"
+            accentColor="hsl(var(--chart-1))"
             onItemClick={handleItemClick}
           />
-        </div>
+        </GlassCard>
       </div>
     </div>
   );
