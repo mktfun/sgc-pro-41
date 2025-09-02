@@ -1,8 +1,8 @@
-
 import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign } from 'lucide-react';
 import { Transaction, TransactionType } from '@/types';
+import { Link } from 'react-router-dom';
 
 interface ClientFinancialHistoryProps {
   transactions: Transaction[];
@@ -36,7 +36,11 @@ export function ClientFinancialHistory({ transactions, transactionTypes }: Clien
             .map(transaction => {
               const transactionType = transactionTypes.find(t => t.id === transaction.typeId);
               return (
-                <div key={transaction.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
+                <Link
+                  to={`/dashboard/faturamento?client=${transaction.clientId}`}
+                  key={transaction.id}
+                  className="block border border-slate-700 rounded-lg p-4 bg-slate-800/50 hover:bg-slate-800/80 transition-colors"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-white">{transaction.description}</h4>
                     <Badge variant={transaction.status === 'REALIZADO' ? 'default' : 'outline'}>
@@ -47,14 +51,14 @@ export function ClientFinancialHistory({ transactions, transactionTypes }: Clien
                     <p><span className="font-medium">Tipo:</span> {transactionType?.name}</p>
                     <p><span className="font-medium">Data:</span> {new Date(transaction.date).toLocaleDateString('pt-BR')}</p>
                     <p>
-                      <span className="font-medium">Valor:</span> 
+                      <span className="font-medium">Valor:</span>
                       <span className={`ml-1 font-bold ${transactionType?.nature === 'GANHO' ? 'text-green-400' : 'text-red-400'}`}>
                         {transactionType?.nature === 'GANHO' ? '+' : '-'}
                         {transaction.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </p>
                   </div>
-                </div>
+                </Link>
               );
             })}
         </div>

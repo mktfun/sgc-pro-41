@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { useSupabaseReports } from './useSupabaseReports';
 import { DateRange } from 'react-day-picker';
@@ -91,8 +90,8 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
   }, [apolicesFiltradas, filtros.intervalo]);
 
   const dadosPerformanceProdutor = useMemo(() => {
-    const performanceMap = new Map();
-    
+    const performanceMap = new Map<string, { produtorId: string; nome: string; totalApolices: number; valorTotal: number; comissaoTotal: number; ticketMedio: number }>();
+
     produtores.forEach(producer => {
       performanceMap.set(producer.id, {
         produtorId: producer.id,
@@ -104,20 +103,35 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
       });
     });
 
+    // Volume (prêmios) por produtor segue baseado nas apólices
     apolicesFiltradas.forEach(policy => {
       if (policy.producer_id) {
         const current = performanceMap.get(policy.producer_id);
         if (current) {
-          const comissao = policy.premium_value * (policy.commission_rate / 100);
-          
           performanceMap.set(policy.producer_id, {
             ...current,
             totalApolices: current.totalApolices + 1,
-            valorTotal: current.valorTotal + policy.premium_value,
-            comissaoTotal: current.comissaoTotal + comissao
+            valorTotal: current.valorTotal + policy.premium_value
           });
         }
       }
+    });
+
+    // Comissões REALIZADAS por produtor baseadas nas transações
+    const isCommissionTx = (t: any) => {
+      const desc = (t.description || '').toLowerCase();
+      return t.nature === 'RECEITA' && (desc.includes('comiss') || !!t.policy_id || !!t.policyId);
+    };
+
+    transacoesFiltradas.filter(isCommissionTx).forEach(tx => {
+      const producerId = tx.producer_id || tx.producerId;
+      if (!producerId) return;
+      const current = performanceMap.get(producerId);
+      if (!current) return;
+      performanceMap.set(producerId, {
+        ...current,
+        comissaoTotal: current.comissaoTotal + (Number(tx.amount) || 0)
+      });
     });
 
     const dadosFormatados = Array.from(performanceMap.values())
@@ -125,7 +139,7 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
         ...data,
         ticketMedio: data.totalApolices > 0 ? data.valorTotal / data.totalApolices : 0
       }))
-      .filter(data => data.totalApolices > 0)
+      .filter(data => data.totalApolices > 0 || data.comissaoTotal > 0)
       .sort((a, b) => b.valorTotal - a.valorTotal);
 
     let insight = '';
@@ -134,13 +148,13 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
     } else {
       const topProdutor = dadosFormatados[0];
       const totalGeral = dadosFormatados.reduce((sum, p) => sum + p.valorTotal, 0);
-      const participacaoTop = ((topProdutor.valorTotal / totalGeral) * 100).toFixed(0);
-      
+      const participacaoTop = totalGeral > 0 ? ((topProdutor.valorTotal / totalGeral) * 100).toFixed(0) : '0';
+
       insight = `${topProdutor.nome} lidera com ${participacaoTop}% do volume total (R$ ${topProdutor.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). ${dadosFormatados.length} produtores ativos no período.`;
     }
 
     return { data: dadosFormatados, insight };
-  }, [apolicesFiltradas, produtores]);
+  }, [apolicesFiltradas, produtores, transacoesFiltradas]);
 
   const dadosRenovacoesPorStatus = useMemo(() => {
     const apolicesComRenovacao = apolicesFiltradas.filter(policy => policy.renewal_status);

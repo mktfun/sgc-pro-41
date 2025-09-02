@@ -1,11 +1,22 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppCard } from '@/components/ui/app-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { DollarSign, TrendingUp, TrendingDown, Calendar, Check, ExternalLink, History } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from '@/components/ui/alert-dialog';
 import { ModalNovaTransacao } from '@/components/faturamento/ModalNovaTransacao';
 import { ModalBaixaParcial } from '@/components/faturamento/ModalBaixaParcial';
 import { HistoricoPagamentos } from '@/components/faturamento/HistoricoPagamentos';
@@ -17,6 +28,7 @@ import { useClients, usePolicies, useTransactionTypes } from '@/hooks/useAppData
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/types';
+import { DateRange } from 'react-day-picker';
 
 export default function Faturamento() {
   usePageTitle('Faturamento');
@@ -28,20 +40,27 @@ export default function Faturamento() {
   const [currentPage, setCurrentPage] = useState(1);
   const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   const pageSize = 20;
+  const [searchParams] = useSearchParams();
+  const clientParam = searchParams.get('client');
 
   const {
     transactions,
     totalCount,
     metrics,
     loading,
-    updateTransaction
+    updateTransaction,
+    markAllPendingCommissionsAsPaid
   } = useSupabaseTransactionsPaginated({
     period: selectedPeriod,
     companyId: selectedCompany,
     page: currentPage,
-    pageSize
+    pageSize,
+    dateRange,
+    clientId: clientParam
   });
 
   const { clients } = useClients();
@@ -67,6 +86,11 @@ export default function Faturamento() {
   const handleFilterChange = (newPeriod: string, newCompany: string) => {
     setSelectedPeriod(newPeriod);
     setSelectedCompany(newCompany);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
     setCurrentPage(1);
   };
 
@@ -97,11 +121,13 @@ export default function Faturamento() {
           </div>
         </div>
 
-        <FiltrosFaturamento 
-          selectedPeriod={selectedPeriod} 
-          selectedCompany={selectedCompany} 
+        <FiltrosFaturamento
+          selectedPeriod={selectedPeriod}
+          selectedCompany={selectedCompany}
           onPeriodChange={(period) => handleFilterChange(period, selectedCompany)}
           onCompanyChange={(company) => handleFilterChange(selectedPeriod, company)}
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -184,11 +210,60 @@ export default function Faturamento() {
           <h2 className="text-xl font-semibold text-white">
             Transações ({totalCount} total)
           </h2>
-          {!loading && totalCount > 0 && (
-            <span className="text-sm text-slate-400">
-              Mostrando {startItem} a {endItem} de {totalCount} transações
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {!loading && totalCount > 0 && (
+              <span className="text-sm text-slate-400">
+                Mostrando {startItem} a {endItem} de {totalCount} transações
+              </span>
+            )}
+
+            {/* Botão: Baixar todas as comissões pendentes */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-slate-200 hover:bg-white/20"
+                  disabled={loading || bulkLoading}
+                >
+                  <Check size={14} className="mr-2" />
+                  Baixar comissões pendentes
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar baixa em lote</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação marcará como PAGO todas as transações de comissão pendentes do período/filtros atuais. Deseja continuar?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      try {
+                        setBulkLoading(true);
+                        const updated = await markAllPendingCommissionsAsPaid();
+                        toast({
+                          title: 'Baixa concluída',
+                          description: `${updated} comissão(ões) marcada(s) como paga(s).`,
+                        });
+                      } catch (e) {
+                        toast({
+                          title: 'Erro ao processar',
+                          description: 'Não foi possível realizar a baixa em lote.',
+                          variant: 'destructive'
+                        });
+                      } finally {
+                        setBulkLoading(false);
+                      }
+                    }}
+                  >
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
 
         {loading ? (
@@ -203,7 +278,7 @@ export default function Faturamento() {
             </h3>
             <p className="text-slate-400 mb-4">
               {selectedPeriod !== 'all' || selectedCompany !== 'all' 
-                ? 'Nenhuma transação encontrada para os filtros selecionados.' 
+                ? 'Nenhuma transa��ão encontrada para os filtros selecionados.' 
                 : 'Comece adicionando sua primeira transação manual.'}
             </p>
             <ModalNovaTransacao />

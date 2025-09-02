@@ -1,22 +1,27 @@
-
 import { AppCard } from '@/components/ui/app-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCompanies } from '@/hooks/useAppData';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Building } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
 
 interface FiltrosFaturamentoProps {
   selectedPeriod: string;
   selectedCompany: string;
   onPeriodChange: (period: string) => void;
   onCompanyChange: (company: string) => void;
+  dateRange?: DateRange;
+  onDateRangeChange?: (range: DateRange | undefined) => void;
 }
 
 export function FiltrosFaturamento({
   selectedPeriod,
   selectedCompany,
   onPeriodChange,
-  onCompanyChange
+  onCompanyChange,
+  dateRange,
+  onDateRangeChange
 }: FiltrosFaturamentoProps) {
   const { companies } = useCompanies();
 
@@ -30,7 +35,7 @@ export function FiltrosFaturamento({
 
   return (
     <AppCard className="p-4 mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <CalendarDays size={16} className="text-white/60" />
@@ -70,7 +75,15 @@ export function FiltrosFaturamento({
           </Select>
         </div>
 
-        {(selectedPeriod !== 'all' || selectedCompany !== 'all') && (
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <CalendarDays size={16} className="text-white/60" />
+            <label className="text-sm font-medium text-white">Período Personalizado</label>
+          </div>
+          <DatePickerWithRange date={dateRange} onDateChange={onDateRangeChange} />
+        </div>
+
+        {(selectedPeriod !== 'all' || selectedCompany !== 'all' || (dateRange?.from && dateRange?.to)) && (
           <div className="flex items-end">
             <div className="flex gap-2 flex-wrap">
               {selectedPeriod !== 'all' && (
@@ -81,6 +94,11 @@ export function FiltrosFaturamento({
               {selectedCompany !== 'all' && (
                 <Badge variant="secondary" className="text-xs bg-white/10 text-white border-white/20">
                   {companies.find(c => c.id === selectedCompany)?.name}
+                </Badge>
+              )}
+              {dateRange?.from && dateRange?.to && (
+                <Badge variant="secondary" className="text-xs bg-white/10 text-white border-white/20">
+                  {dateRange.from.toLocaleDateString('pt-BR')} - {dateRange.to.toLocaleDateString('pt-BR')}
                 </Badge>
               )}
             </div>

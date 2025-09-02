@@ -1,14 +1,16 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { Transaction } from '@/types';
+import { DateRange } from 'react-day-picker';
 
 interface TransactionFilters {
   period: string;
   companyId: string;
   page: number;
   pageSize: number;
+  dateRange?: DateRange;
+  clientId?: string | null;
 }
 
 interface TransactionMetrics {
@@ -25,6 +27,7 @@ interface TransactionResponse {
   loading: boolean;
   error: any;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+  markAllPendingCommissionsAsPaid: () => Promise<number>;
 }
 
 export function useSupabaseTransactionsPaginated(filters: TransactionFilters): TransactionResponse {
@@ -44,8 +47,12 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      // 📅 FILTRO POR PERÍODO NO BACKEND
-      if (filters.period !== 'all') {
+      // 📅 FILTRO POR PERÍODO OU INTERVALO PERSONALIZADO NO BACKEND
+      if (filters.dateRange?.from && filters.dateRange?.to) {
+        const from = filters.dateRange.from.toISOString().split('T')[0];
+        const to = filters.dateRange.to.toISOString().split('T')[0];
+        query = query.gte('date', from).lte('date', to);
+      } else if (filters.period !== 'all') {
         const now = new Date();
         let startDate: Date;
 
@@ -78,6 +85,10 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
       // 🏢 FILTRO POR SEGURADORA NO BACKEND
       if (filters.companyId !== 'all') {
         query = query.eq('company_id', filters.companyId);
+      }
+
+      if (filters.clientId) {
+        query = query.eq('client_id', filters.clientId);
       }
 
       // 📄 APLICAR PAGINAÇÃO
@@ -117,8 +128,12 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         .select('amount, status, nature')
         .eq('user_id', user.id);
 
-      // Aplicar os mesmos filtros de período e empresa nas métricas
-      if (filters.period !== 'all') {
+      // Aplicar os mesmos filtros de período/intervalo e empresa nas métricas
+      if (filters.dateRange?.from && filters.dateRange?.to) {
+        const from = filters.dateRange.from.toISOString().split('T')[0];
+        const to = filters.dateRange.to.toISOString().split('T')[0];
+        metricsQuery = metricsQuery.gte('date', from).lte('date', to);
+      } else if (filters.period !== 'all') {
         const now = new Date();
         let startDate: Date;
 
@@ -148,6 +163,10 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
 
       if (filters.companyId !== 'all') {
         metricsQuery = metricsQuery.eq('company_id', filters.companyId);
+      }
+
+      if (filters.clientId) {
+        metricsQuery = metricsQuery.eq('client_id', filters.clientId);
       }
 
       const { data: metricsData, error: metricsError } = await metricsQuery;
@@ -219,13 +238,68 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
     },
   });
 
+  // 🆕 AÇÃO EM LOTE: marcar todas as comissões pendentes como pagas (respeita filtros atuais)
+  const markAllPendingCommissionsAsPaid = async (): Promise<number> => {
+    if (!user) return 0;
+
+    let updateQuery = supabase
+      .from('transactions')
+      .update({ status: 'PAGO' })
+      .eq('user_id', user.id)
+      .eq('status', 'PENDENTE')
+      .eq('nature', 'RECEITA')
+      .not('policy_id', 'is', null);
+
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+      const from = filters.dateRange.from.toISOString().split('T')[0];
+      const to = filters.dateRange.to.toISOString().split('T')[0];
+      updateQuery = updateQuery.gte('date', from).lte('date', to);
+    } else if (filters.period !== 'all') {
+      const now = new Date();
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      switch (filters.period) {
+        case 'current-month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'last-month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+          break;
+        case 'current-year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'last-year':
+          startDate = new Date(now.getFullYear() - 1, 0, 1);
+          endDate = new Date(now.getFullYear() - 1, 11, 31);
+          break;
+      }
+      if (startDate) updateQuery = updateQuery.gte('date', startDate.toISOString().split('T')[0]);
+      if (endDate) updateQuery = updateQuery.lte('date', endDate.toISOString().split('T')[0]);
+    }
+
+    if (filters.companyId !== 'all') {
+      updateQuery = updateQuery.eq('company_id', filters.companyId);
+    }
+    if (filters.clientId) {
+      updateQuery = updateQuery.eq('client_id', filters.clientId);
+    }
+
+    const { data: updatedRows, error: updateError } = await updateQuery.select('id');
+    if (updateError) throw updateError;
+
+    queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+    return updatedRows?.length || 0;
+  };
+
   return {
     transactions: data?.transactions || [],
     totalCount: data?.totalCount || 0,
     metrics: data?.metrics || { totalGanhos: 0, totalPerdas: 0, saldoLiquido: 0, totalPrevisto: 0 },
     loading: isLoading,
     error,
-    updateTransaction: (id: string, updates: Partial<Transaction>) => 
+    updateTransaction: (id: string, updates: Partial<Transaction>) =>
       updateTransactionMutation.mutateAsync({ id, updates }),
+    markAllPendingCommissionsAsPaid,
   };
 }

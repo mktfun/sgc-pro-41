@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { User, Search, Loader2, ArrowUpDown, Grid3X3, List } from 'lucide-react';
 import { useSupabaseClients } from '@/hooks/useSupabaseClients';
 import { useAllClients } from '@/hooks/useAllClients';
-import { usePolicies } from '@/hooks/useAppData';
+import { usePolicies, useCompanies, useCompanyBranches } from '@/hooks/useAppData';
 import { NewClientModal } from '@/components/clients/NewClientModal';
+import { useSearchParams } from 'react-router-dom';
 import { ClientImportModal } from '@/components/clients/ClientImportModal';
 import { ClientCardView } from '@/components/clients/ClientCardView';
 import { ClientListView } from '@/components/clients/ClientListView';
@@ -43,6 +44,15 @@ export default function Clients() {
   });
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const pageSize = 15;
+  const [seguradoraFiltro, setSeguradoraFiltro] = useState<string | 'all'>('all');
+  const [ramoFiltro, setRamoFiltro] = useState<string | 'all'>('all');
+  const [searchParams] = useSearchParams();
+  React.useEffect(() => {
+    const seg = searchParams.get('seguradora');
+    const ramo = searchParams.get('ramo');
+    if (seg) setSeguradoraFiltro(seg);
+    if (ramo) setRamoFiltro(ramo);
+  }, []);
 
   // 🔥 **ESTADO PARA CONTROLAR O MODAL DE IMPORTAÇÃO**
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -51,17 +61,32 @@ export default function Clients() {
   const [termoBusca, setTermoBusca] = useState('');
   const [searchDebounce, setSearchDebounce] = useState('');
 
-  // 🚀 **HOOK COM PAGINAÇÃO, ORDENAÇÃO E BUSCA** (para exibição)
+  // 🚀 **HOOK COM PAGINAÇÃO, ORDENA��ÃO E BUSCA** (para exibição)
   const { clients, loading, totalCount, totalPages, refetch } = useSupabaseClients({
     pagination: { page: currentPage, pageSize },
     sortConfig,
-    searchTerm: searchDebounce
+    searchTerm: searchDebounce,
+    filters: {
+      seguradoraId: seguradoraFiltro !== 'all' ? seguradoraFiltro : null,
+      ramo: ramoFiltro !== 'all' ? ramoFiltro : null
+    }
   });
 
   // 🚀 **HOOK PARA TODOS OS CLIENTES** (para deduplicação e busca global)
   const { allClients, loading: loadingAll } = useAllClients();
 
   const { policies } = usePolicies();
+  const { companies } = useCompanies();
+  const { companyBranches } = useCompanyBranches();
+
+  // Ramos disponíveis (opcionalmente filtrados pela seguradora)
+  const branchOptions = React.useMemo(() => {
+    const branches = seguradoraFiltro !== 'all'
+      ? companyBranches.filter(b => b.companyId === seguradoraFiltro)
+      : companyBranches;
+    const unique = Array.from(new Set(branches.map(b => b.name)));
+    return unique;
+  }, [companyBranches, seguradoraFiltro]);
 
   // Debounce da busca para evitar muitas requisições
   React.useEffect(() => {
@@ -185,8 +210,8 @@ export default function Clients() {
             />
           )}
 
-          {/* 🚀 **BARRA DE CONTROLES: BUSCA, ORDENAÇÃO E VISUALIZAÇÃO** */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* 🚀 **BARRA DE CONTROLES: BUSCA, ORDENAÇÃO, FILTROS E VISUALIZAÇÃO** */}
+          <div className="flex flex-col lg:flex-row gap-4">
             {/* Barra de busca */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40" size={20} />
@@ -198,11 +223,48 @@ export default function Clients() {
               />
             </div>
 
+            {/* Filtro por Seguradora */}
+            <div className="flex items-center gap-2">
+              <Select value={seguradoraFiltro} onValueChange={(v) => {
+                setSeguradoraFiltro(v as any);
+                setRamoFiltro('all');
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Filtrar por Seguradora" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Seguradoras</SelectItem>
+                  {companies.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro por Ramo */}
+            <div className="flex items-center gap-2">
+              <Select value={ramoFiltro} onValueChange={(v) => {
+                setRamoFiltro(v as any);
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Filtrar por Ramo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Ramos</SelectItem>
+                  {branchOptions.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* 🚀 **CONTROLES DE ORDENAÇÃO E VISUALIZAÇÃO** */}
             <div className="flex items-center gap-2">
               <ArrowUpDown className="text-white/60" size={16} />
-              <Select 
-                value={`${sortConfig.key}-${sortConfig.direction}`} 
+              <Select
+                value={`${sortConfig.key}-${sortConfig.direction}`}
                 onValueChange={handleSortChange}
               >
                 <SelectTrigger className="w-48">

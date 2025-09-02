@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Transaction, Policy, Client } from '@/types';
 import { useTransactions, useClients } from '@/hooks/useAppData';
@@ -6,6 +5,7 @@ import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface CommissionExtractProps {
   policy: Policy;
@@ -106,9 +106,10 @@ export function CommissionExtract({ policy }: CommissionExtractProps) {
           ) : (
             <div className="space-y-2">
               {commissionTransactions.map(transaction => (
-                <div 
-                  key={transaction.id} 
-                  className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg"
+                <Link
+                  to={`/dashboard/faturamento?client=${policy.clientId}`}
+                  key={transaction.id}
+                  className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/60 transition-colors"
                 >
                   <div>
                     <p className="font-medium text-white">{transaction.description}</p>
@@ -118,19 +119,19 @@ export function CommissionExtract({ policy }: CommissionExtractProps) {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-green-400">
-                      {transaction.amount.toLocaleString('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
+                      {transaction.amount.toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
                       })}
                     </p>
-                    <Badge 
+                    <Badge
                       variant={transaction.status === 'PENDENTE' ? 'outline' : 'default'}
                       className={transaction.status === 'PENDENTE' ? 'text-yellow-400 border-yellow-500' : 'text-green-400 border-green-500'}
                     >
                       {transaction.status}
                     </Badge>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

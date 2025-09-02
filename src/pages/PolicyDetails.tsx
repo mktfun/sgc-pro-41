@@ -1,7 +1,6 @@
-
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Download, FileText, Upload, Calendar, DollarSign, Building2, User, Phone, Mail, MapPin, Edit, Calculator, ArrowRight, Ban } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Upload, Calendar, DollarSign, Building2, User, Phone, Mail, MapPin, Edit, Calculator, ArrowRight, Ban, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,10 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useCompanyNames } from '@/hooks/useCompanyNames';
 import { useProducerNames } from '@/hooks/useProducerNames';
 import { BudgetConversionModal } from '@/components/policies/BudgetConversionModal';
+import { RenewPolicyModal } from '@/components/policies/RenewPolicyModal';
+import { PolicyFormModal } from '@/components/policies/PolicyFormModal';
+import { AutoRenewalIndicator } from '@/components/policies/AutoRenewalIndicator';
+import { PolicyRenewalSection } from '@/components/policies/PolicyRenewalSection';
 import type { Policy } from '@/types';
 import { CommissionExtract } from '@/components/policies/CommissionExtract';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +30,8 @@ export default function PolicyDetails() {
   const { toast } = useToast();
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [client, setClient] = useState<any>(null);
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [isEditPolicyModalOpen, setIsEditPolicyModalOpen] = useState(false);
 
   const isBudget = policy?.status === 'Orçamento';
 
@@ -180,12 +185,12 @@ export default function PolicyDetails() {
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <Badge 
+          <div className="flex items-center gap-3">
+            <Badge
               variant={policy.status === 'Ativa' ? 'default' : 'secondary'}
               className={
-                policy.status === 'Ativa' 
-                  ? 'bg-green-600/80 text-white hover:bg-green-700/80' 
+                policy.status === 'Ativa'
+                  ? 'bg-green-600/80 text-white hover:bg-green-700/80'
                   : policy.status === 'Orçamento'
                   ? 'bg-blue-600/80 text-white hover:bg-blue-700/80'
                   : policy.status === 'Cancelada'
@@ -195,6 +200,11 @@ export default function PolicyDetails() {
             >
               {policy.status}
             </Badge>
+            <AutoRenewalIndicator
+              automaticRenewal={policy.automaticRenewal}
+              expirationDate={policy.expirationDate}
+              status={policy.status}
+            />
             {policy.renewalStatus && (
               <Badge variant="outline">
                 {policy.renewalStatus}
@@ -391,6 +401,14 @@ export default function PolicyDetails() {
                   </BudgetConversionModal>
                 ) : (
                   <>
+                    {policy.status === 'Ativa' && (
+                      <Button className="w-full" onClick={() => setIsRenewModalOpen(true)}>
+                        <RotateCcw className="w-4 h-4 mr-2" /> Renovar
+                      </Button>
+                    )}
+                    <Button variant="outline" className="w-full" onClick={() => setIsEditPolicyModalOpen(true)}>
+                      <Edit className="w-4 h-4 mr-2" /> Editar Apólice
+                    </Button>
                     {shouldShowUpload && (
                       <div>
                         <label htmlFor="pdf-upload">
@@ -461,7 +479,7 @@ export default function PolicyDetails() {
             {/* Informações Adicionais */}
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader>
-                <CardTitle className="text-white">Informações</CardTitle>
+                <CardTitle className="text-white">Informa&ccedil;&otilde;es</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -488,9 +506,58 @@ export default function PolicyDetails() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Renovação Automática - abaixo de Informações */}
+            <Card className="bg-slate-900/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white">Renova&ccedil;&atilde;o Autom&aacute;tica</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PolicyRenewalSection
+                  policyId={policy.id}
+                  automaticRenewal={policy.automaticRenewal}
+                  expirationDate={policy.expirationDate}
+                />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
+
+      {policy && (
+        <>
+          <RenewPolicyModal
+            policy={policy}
+            isOpen={isRenewModalOpen}
+            onClose={() => setIsRenewModalOpen(false)}
+            onSuccess={() => setIsRenewModalOpen(false)}
+          />
+
+          {isEditPolicyModalOpen && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+              <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-white">Editar Apólice</h2>
+                  <Button
+                    onClick={() => setIsEditPolicyModalOpen(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-400 hover:text-white"
+                  >
+                    ×
+                  </Button>
+                </div>
+                <PolicyFormModal
+                  policy={policy}
+                  isEditing={true}
+                  onClose={() => setIsEditPolicyModalOpen(false)}
+                  onPolicyAdded={() => setIsEditPolicyModalOpen(false)}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

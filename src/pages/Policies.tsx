@@ -1,9 +1,8 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useCompanyNames } from '@/hooks/useCompanyNames';
 import { useClients, usePolicies } from '@/hooks/useAppData';
-import { PolicyModal } from '@/components/policies/PolicyModal';
 import { PolicyFormModal } from '@/components/policies/PolicyFormModal';
-import { RenewPolicyModal } from '@/components/policies/RenewPolicyModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -18,16 +17,13 @@ import { AutoRenewalIndicator } from '@/components/policies/AutoRenewalIndicator
 export default function Policies() {
   const { clients } = useClients();
   const { producers } = useSupabaseProducers();
-  const [selectedPolicy, setSelectedPolicy] = useState<any>(null);
-  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [isNewPolicyModalOpen, setIsNewPolicyModalOpen] = useState(false);
-  const [isEditPolicyModalOpen, setIsEditPolicyModalOpen] = useState(false);
-  const [policyToEdit, setPolicyToEdit] = useState<any>(null);
   
-  const { 
-    filters, 
-    setFilters, 
-    filteredPolicies, 
+  const {
+    filters,
+    setFilters,
+    filteredPolicies,
     uniqueInsuranceCompanies,
     resetFilters,
     totalPolicies,
@@ -36,30 +32,34 @@ export default function Policies() {
     handleSort
   } = useFilteredPolicies();
 
-  const handleRenewPolicy = (policy: any) => {
-    setSelectedPolicy(policy);
-    setIsRenewModalOpen(true);
-  };
+  const { getCompanyName } = useCompanyNames();
 
-  const handleEditPolicy = (policy: any) => {
-    setPolicyToEdit(policy);
-    setIsEditPolicyModalOpen(true);
-    setSelectedPolicy(null);
-  };
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const seg = searchParams.get('seguradora');
+    const ramo = searchParams.get('ramo');
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+    const q = searchParams.get('q');
+    setFilters(prev => ({
+      ...prev,
+      insuranceCompany: seg || prev.insuranceCompany,
+      ramo: ramo || prev.ramo,
+      period: start && end ? 'custom' : prev.period,
+      customStart: start || prev.customStart || null,
+      customEnd: end || prev.customEnd || null,
+      searchTerm: q || prev.searchTerm,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleCloseRenewModal = () => {
-    setIsRenewModalOpen(false);
-    setSelectedPolicy(null);
-  };
+
+
 
   const handleCloseNewPolicyModal = () => {
     setIsNewPolicyModalOpen(false);
   };
 
-  const handleCloseEditPolicyModal = () => {
-    setIsEditPolicyModalOpen(false);
-    setPolicyToEdit(null);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -133,8 +133,8 @@ export default function Policies() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas</SelectItem>
-              {uniqueInsuranceCompanies.map(company => (
-                <SelectItem key={company} value={company}>{company}</SelectItem>
+              {uniqueInsuranceCompanies.map(companyId => (
+                <SelectItem key={companyId} value={companyId}>{getCompanyName(companyId)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -201,7 +201,7 @@ export default function Policies() {
             <div
               key={policy.id}
               className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors cursor-pointer"
-              onClick={() => setSelectedPolicy(policy)}
+              onClick={() => navigate(`/dashboard/policies/${policy.id}`)}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex-1 space-y-3">
@@ -279,20 +279,7 @@ export default function Policies() {
       </div>
 
       {/* Modais */}
-      <PolicyModal
-        policy={selectedPolicy}
-        isOpen={!!selectedPolicy}
-        onClose={() => setSelectedPolicy(null)}
-        onEdit={handleEditPolicy}
-        onRenew={handleRenewPolicy}
-      />
 
-      <RenewPolicyModal
-        policy={selectedPolicy}
-        isOpen={isRenewModalOpen}
-        onClose={handleCloseRenewModal}
-        onSuccess={() => setSelectedPolicy(null)}
-      />
 
       {/* Modal Nova Apólice */}
       {isNewPolicyModalOpen && (
@@ -311,36 +298,12 @@ export default function Policies() {
             </div>
             <PolicyFormModal
               onClose={handleCloseNewPolicyModal}
-              onPolicyAdded={() => setSelectedPolicy(null)}
+              onPolicyAdded={() => {}}
             />
           </div>
         </div>
       )}
 
-      {/* Modal Editar Apólice */}
-      {isEditPolicyModalOpen && policyToEdit && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-slate-900 border border-slate-700 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-white">Editar Apólice</h2>
-              <Button
-                onClick={handleCloseEditPolicyModal}
-                variant="ghost"
-                size="sm"
-                className="text-slate-400 hover:text-white"
-              >
-                ×
-              </Button>
-            </div>
-            <PolicyFormModal
-              policy={policyToEdit}
-              isEditing={true}
-              onClose={handleCloseEditPolicyModal}
-              onPolicyAdded={() => setSelectedPolicy(null)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

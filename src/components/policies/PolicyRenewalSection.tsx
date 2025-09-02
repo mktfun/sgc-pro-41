@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,7 +92,7 @@ export function PolicyRenewalSection({
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
-                    {appointment.time}
+                    {appointment.time ? String(appointment.time).slice(0,5) : new Date(appointment.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="flex items-center gap-1">
                     <User className="w-4 h-4" />
@@ -101,11 +100,13 @@ export function PolicyRenewalSection({
                   </div>
                 </div>
                 
-                {appointment.notes && (
-                  <p className="text-xs text-slate-400 mt-2 italic">
-                    {appointment.notes}
-                  </p>
-                )}
+                {(() => {
+                  const note = (appointment.notes || '').trim();
+                  const hide = note.toLowerCase().startsWith('agendamento automático para renovação');
+                  return !hide && note ? (
+                    <p className="text-xs text-slate-400 mt-2 italic">{note}</p>
+                  ) : null;
+                })()}
               </div>
             ))}
           </div>

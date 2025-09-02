@@ -1,9 +1,9 @@
-
 import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { FileText } from 'lucide-react';
 import { Policy } from '@/types';
 import { useCompanyNames } from '@/hooks/useCompanyNames';
+import { Link } from 'react-router-dom';
 
 interface ClientPoliciesHistoryProps {
   policies: Policy[];
@@ -34,7 +34,11 @@ export function ClientPoliciesHistory({ policies }: ClientPoliciesHistoryProps) 
       ) : (
         <div className="space-y-4">
           {policies.map(policy => (
-            <div key={policy.id} className="border border-slate-700 rounded-lg p-4 bg-slate-800/50">
+            <Link
+              to={`/dashboard/policies/${policy.id}`}
+              key={policy.id}
+              className="block border border-slate-700 rounded-lg p-4 bg-slate-800/50 hover:bg-slate-800/80 transition-colors"
+            >
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold text-white">{policy.type || 'Tipo não informado'}</h4>
                 <Badge variant={policy.status === 'Ativa' ? 'default' : 'secondary'}>
@@ -54,7 +58,7 @@ export function ClientPoliciesHistory({ policies }: ClientPoliciesHistoryProps) 
                   <p><span className="font-medium">Prêmio:</span> R$ {policy.premiumValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

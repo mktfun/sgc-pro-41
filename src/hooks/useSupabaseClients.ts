@@ -18,6 +18,10 @@ interface UseSupabaseClientsParams {
   pagination?: PaginationConfig;
   sortConfig?: SortConfig;
   searchTerm?: string;
+  filters?: {
+    seguradoraId?: string | null;
+    ramo?: string | null;
+  };
 }
 
 interface ClientsResponse {
@@ -26,13 +30,13 @@ interface ClientsResponse {
   totalPages: number;
 }
 
-export function useSupabaseClients({ pagination, sortConfig, searchTerm }: UseSupabaseClientsParams = {}) {
+export function useSupabaseClients({ pagination, sortConfig, searchTerm, filters }: UseSupabaseClientsParams = {}) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   // 🚀 **PAGINAÇÃO, ORDENAÇÃO E BUSCA BACKEND** - Query principal com .range(), .order() e .ilike()
   const { data, isLoading: loading, error } = useQuery({
-    queryKey: ['clients', user?.id, pagination, sortConfig, searchTerm],
+    queryKey: ['clients', user?.id, pagination, sortConfig, searchTerm, filters?.seguradoraId || null, filters?.ramo || null],
     queryFn: async (): Promise<ClientsResponse> => {
       if (!user) return { clients: [], totalCount: 0, totalPages: 0 };
 
@@ -40,6 +44,33 @@ export function useSupabaseClients({ pagination, sortConfig, searchTerm }: UseSu
       let query = supabase
         .from('clientes')
         .select('*', { count: 'exact' });
+
+      // Aplicar filtros de Seguradora e Ramo via relação com apólices
+      if ((filters?.seguradoraId && filters.seguradoraId !== 'all') || (filters?.ramo && filters.ramo !== 'all')) {
+        // Buscar IDs de clientes que possuem apólices com os filtros selecionados
+        let policiesQuery = supabase
+          .from('apolices')
+          .select('client_id')
+          .eq('user_id', user.id);
+
+        if (filters?.seguradoraId && filters.seguradoraId !== 'all') {
+          policiesQuery = policiesQuery.eq('insurance_company', filters.seguradoraId);
+        }
+        if (filters?.ramo && filters.ramo !== 'all') {
+          policiesQuery = policiesQuery.eq('type', filters.ramo);
+        }
+
+        const { data: policiesData, error: policiesError } = await policiesQuery;
+        if (policiesError) {
+          console.error('Erro ao buscar apólices para filtros:', policiesError);
+        } else {
+          const clientIds = Array.from(new Set((policiesData || []).map(p => p.client_id).filter(Boolean)));
+          if (clientIds.length === 0) {
+            return { clients: [], totalCount: 0, totalPages: 0 };
+          }
+          query = query.in('id', clientIds as string[]);
+        }
+      }
 
       // Aplicar busca se configurada
       if (searchTerm && searchTerm.trim()) {

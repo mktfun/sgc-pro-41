@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from 'react';
 import { usePolicies, useClients } from '@/hooks/useAppData';
 import { useSupabaseProducers } from '@/hooks/useSupabaseProducers';
@@ -8,9 +7,12 @@ import { startOfMonth, endOfMonth, addDays, isWithinInterval, startOfToday } fro
 export interface PolicyFilters {
   searchTerm: string;
   status: string;
-  insuranceCompany: string;
-  period: string;
+  insuranceCompany: string; // stores company ID or 'todas'
+  period: string; // 'todos' | presets | 'custom'
   producerId: string;
+  ramo: string;
+  customStart: string | null;
+  customEnd: string | null;
 }
 
 export interface SortConfig {
@@ -30,6 +32,9 @@ export function useFilteredPolicies() {
     insuranceCompany: 'todas',
     period: 'todos',
     producerId: 'todos',
+    ramo: 'todos',
+    customStart: null,
+    customEnd: null,
   });
 
   // Estado para ordenação - padrão por data de vencimento
@@ -74,6 +79,11 @@ export function useFilteredPolicies() {
         return false;
       }
 
+      // Filtro por Ramo
+      if (filters.ramo !== 'todos' && policy.type !== filters.ramo) {
+        return false;
+      }
+
       // Filtro por Produtor
       if (filters.producerId !== 'todos' && policy.producerId !== filters.producerId) {
         return false;
@@ -82,24 +92,30 @@ export function useFilteredPolicies() {
       // Filtro por Período de Vencimento
       if (filters.period !== 'todos') {
         const dataVencimento = new Date(policy.expirationDate);
-        
-        switch (filters.period) {
-          case 'current-month':
-            const inicioMes = startOfMonth(hoje);
-            const fimMes = endOfMonth(hoje);
-            if (!isWithinInterval(dataVencimento, { start: inicioMes, end: fimMes })) return false;
-            break;
-          case 'next-30-days':
-            const prox30 = addDays(hoje, 30);
-            if (!isWithinInterval(dataVencimento, { start: hoje, end: prox30 })) return false;
-            break;
-          case 'next-90-days':
-            const prox90 = addDays(hoje, 90);
-            if (!isWithinInterval(dataVencimento, { start: hoje, end: prox90 })) return false;
-            break;
-          case 'expired':
-            if (dataVencimento >= hoje) return false;
-            break;
+
+        if (filters.period === 'custom' && filters.customStart && filters.customEnd) {
+          const start = new Date(filters.customStart);
+          const end = new Date(filters.customEnd);
+          if (!isWithinInterval(dataVencimento, { start, end })) return false;
+        } else {
+          switch (filters.period) {
+            case 'current-month':
+              const inicioMes = startOfMonth(hoje);
+              const fimMes = endOfMonth(hoje);
+              if (!isWithinInterval(dataVencimento, { start: inicioMes, end: fimMes })) return false;
+              break;
+            case 'next-30-days':
+              const prox30 = addDays(hoje, 30);
+              if (!isWithinInterval(dataVencimento, { start: hoje, end: prox30 })) return false;
+              break;
+            case 'next-90-days':
+              const prox90 = addDays(hoje, 90);
+              if (!isWithinInterval(dataVencimento, { start: hoje, end: prox90 })) return false;
+              break;
+            case 'expired':
+              if (dataVencimento >= hoje) return false;
+              break;
+          }
         }
       }
 

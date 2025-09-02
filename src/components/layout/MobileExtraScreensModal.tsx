@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Grid3X3, Settings, FileText, TrendingUp, CreditCard, Shield, UserCog, PieChart } from 'lucide-react';
+import { Grid3X3, Settings, CreditCard, Shield, UserCog, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useNavigate } from 'react-router-dom';
@@ -26,21 +26,15 @@ const extraScreens = [
   {
     title: 'Perfil',
     icon: UserCog,
-    path: '/dashboard/profile',
+    path: '/dashboard/settings/profile',
     description: 'Dados do usuário'
   },
   {
     title: 'Analytics',
     icon: PieChart,
-    path: '/dashboard/analytics',
+    path: '/dashboard/reports',
     description: 'Análises avançadas'
   },
-  {
-    title: 'Exportar',
-    icon: FileText,
-    path: '/dashboard/export',
-    description: 'Exportação de dados'
-  }
 ];
 
 export function MobileExtraScreensModal() {

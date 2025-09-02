@@ -1,4 +1,3 @@
-
 import { Client, Policy, Transaction } from '@/types';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { AppCard } from '@/components/ui/app-card';
@@ -23,14 +22,27 @@ export function RelatorioFaturamento({
 }: RelatorioFaturamentoProps) {
   // Cálculos dos KPIs financeiros
   const totalFaturado = apolices.reduce((sum, p) => sum + (p.premiumValue || 0), 0);
-  
-  // Calcular comissões baseado no commissionRate das apólices
-  const totalComissoes = apolices.reduce((sum, p) => {
-    const premium = p.premiumValue || 0;
-    const rate = p.commissionRate || 0;
-    return sum + (premium * (rate / 100));
-  }, 0);
-  
+
+  // Definir "verdade" de comissões como transações de receita de comissão (realizadas)
+  const isCommissionTx = (t: Transaction) => {
+    const desc = (t.description || '').toLowerCase();
+    const isReceita = t.nature === 'RECEITA';
+    const isCommissionLike = desc.includes('comiss') || !!t.policyId; // marcações de comissão
+    return isReceita && isCommissionLike;
+  };
+
+  // Aplicar filtro de período quando existir (usa transactionDate se disponível)
+  const inRange = (t: Transaction) => {
+    if (!intervalo?.from || !intervalo?.to) return true;
+    const raw = t.transactionDate || t.date;
+    if (!raw) return false;
+    const d = new Date(raw);
+    return d >= intervalo.from && d <= intervalo.to;
+  };
+
+  const comissoesTransacoes = transactions.filter(isCommissionTx).filter(inRange);
+
+  const totalComissoes = comissoesTransacoes.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const comissaoMedia = apolices.length > 0 ? totalComissoes / apolices.length : 0;
   const percentualComissao = totalFaturado > 0 ? (totalComissoes / totalFaturado) * 100 : 0;
 
@@ -45,39 +57,20 @@ export function RelatorioFaturamento({
     console.log(`📊 Granularidade dinâmica: ${diasDiferenca} dias -> ${usarGranularidadeDiaria ? 'DIÁRIA' : 'MENSAL'}`);
 
     if (usarGranularidadeDiaria) {
-      // AGRUPAMENTO POR DIA (≤ 31 dias)
+      // AGRUPAMENTO POR DIA (≤ 31 dias) baseado em transações
       const dias = eachDayOfInterval({
         start: startOfDay(intervalo.from),
         end: startOfDay(intervalo.to)
       });
 
       return dias.map(dia => {
-        const apolicesNoDia = apolices.filter(apolice => {
-          const createdAt = apolice.createdAt;
-          if (!createdAt) return false;
-          
-          // Parse the date safely
-          let dataApolice: Date;
-          if (typeof createdAt === 'string') {
-            dataApolice = parseISO(createdAt);
-          } else {
-            dataApolice = new Date(createdAt);
-          }
-          
-          // Check if date is valid before formatting
-          if (!isValid(dataApolice)) {
-            console.warn('Data inválida encontrada:', createdAt);
-            return false;
-          }
-          
-          return format(dataApolice, 'yyyy-MM-dd') === format(dia, 'yyyy-MM-dd');
-        });
-
-        const comissaoDia = apolicesNoDia.reduce((sum, p) => {
-          const premium = p.premiumValue || 0;
-          const rate = p.commissionRate || 0;
-          return sum + (premium * (rate / 100));
-        }, 0);
+        const comissaoDia = comissoesTransacoes
+          .filter(t => {
+            const raw = t.transactionDate || t.date;
+            if (!raw) return false;
+            return format(new Date(raw), 'yyyy-MM-dd') === format(dia, 'yyyy-MM-dd');
+          })
+          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
         return {
           periodo: format(dia, 'dd/MM', { locale: ptBR }),
@@ -85,39 +78,20 @@ export function RelatorioFaturamento({
         };
       });
     } else {
-      // AGRUPAMENTO POR MÊS (> 31 dias)
+      // AGRUPAMENTO POR MÊS (> 31 dias) baseado em transações
       const meses = eachMonthOfInterval({
         start: startOfMonth(intervalo.from),
         end: startOfMonth(intervalo.to)
       });
 
       return meses.map(mes => {
-        const apolicesDoMes = apolices.filter(apolice => {
-          const createdAt = apolice.createdAt;
-          if (!createdAt) return false;
-          
-          // Parse the date safely
-          let dataApolice: Date;
-          if (typeof createdAt === 'string') {
-            dataApolice = parseISO(createdAt);
-          } else {
-            dataApolice = new Date(createdAt);
-          }
-          
-          // Check if date is valid before formatting
-          if (!isValid(dataApolice)) {
-            console.warn('Data inválida encontrada:', createdAt);
-            return false;
-          }
-          
-          return format(dataApolice, 'yyyy-MM') === format(mes, 'yyyy-MM');
-        });
-
-        const comissaoMes = apolicesDoMes.reduce((sum, p) => {
-          const premium = p.premiumValue || 0;
-          const rate = p.commissionRate || 0;
-          return sum + (premium * (rate / 100));
-        }, 0);
+        const comissaoMes = comissoesTransacoes
+          .filter(t => {
+            const raw = t.transactionDate || t.date;
+            if (!raw) return false;
+            return format(new Date(raw), 'yyyy-MM') === format(mes, 'yyyy-MM');
+          })
+          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
         return {
           periodo: format(mes, 'MMM/yy', { locale: ptBR }),
@@ -144,7 +118,7 @@ export function RelatorioFaturamento({
       value: formatCurrency(totalComissoes),
       icon: DollarSign,
       bgColor: "bg-green-600",
-      description: "Comissões ganhas no período"
+      description: "Comissões ganhas no per��odo"
     },
     {
       title: "Comissão Média / Apólice",

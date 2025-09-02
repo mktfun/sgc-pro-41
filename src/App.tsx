@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RootLayout } from "./layouts/RootLayout";
@@ -29,6 +29,14 @@ import ProducerSettings from "./pages/settings/ProducerSettings";
 import CompanySettings from "./pages/settings/CompanySettings";
 import TransactionSettings from "./pages/settings/TransactionSettings";
 
+// Helper to redirect legacy detail routes to dashboard namespace
+function ParamRedirect({ toBase }: { toBase: string }) {
+  const params = useParams();
+  const id = (params as any)?.id;
+  const to = id ? `${toBase}/${id}` : toBase;
+  return <Navigate to={to} replace />;
+}
+
 // Create query client with default options
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +62,9 @@ function App() {
                 {/* Redirects for legacy/direct route access */}
                 <Route path="/appointments" element={<Navigate to="/dashboard/appointments" replace />} />
                 <Route path="/policies" element={<Navigate to="/dashboard/policies" replace />} />
+                <Route path="/policies/:id" element={<ParamRedirect toBase="/dashboard/policies" />} />
                 <Route path="/clients" element={<Navigate to="/dashboard/clients" replace />} />
+                <Route path="/clients/:id" element={<ParamRedirect toBase="/dashboard/clients" />} />
                 <Route path="/tasks" element={<Navigate to="/dashboard/tasks" replace />} />
                 <Route path="/faturamento" element={<Navigate to="/dashboard/faturamento" replace />} />
                 <Route path="/renovacoes" element={<Navigate to="/dashboard/renovacoes" replace />} />

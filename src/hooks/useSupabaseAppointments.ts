@@ -248,8 +248,23 @@ export function useSupabaseAppointments() {
 
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    // Quando um agendamento for concluído/cancelado, remover notificações relacionadas
+    onSuccess: async (_data, variables) => {
+      try {
+        const status = (variables?.updates as any)?.status;
+        if (status === 'Realizado' || status === 'Cancelado') {
+          await supabase
+            .from('notifications')
+            .delete()
+            .eq('appointment_id', variables.id);
+          // Atualizar lista de notificações
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
+      } catch (e) {
+        console.error('Erro ao limpar notificações do agendamento:', e);
+      } finally {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      }
     },
   });
 
