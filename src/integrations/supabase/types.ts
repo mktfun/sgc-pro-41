@@ -1140,6 +1140,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_clientes_filtrados: {
+        Args:
+          | {
+              p_ramo?: string
+              p_search_term?: string
+              p_seguradora_id?: string
+              p_user_id: string
+            }
+          | {
+              p_ramo_id: string
+              p_search_term: string
+              p_seguradora_id: string
+            }
+          | { p_search_term: string; p_seguradora_id: string }
+        Returns: {
+          email: string
+          id: string
+          nome: string
+          phone: string
+          total_seguros: number
+        }[]
+      }
       get_empresas_com_metricas: {
         Args: { p_corretora_id: string }
         Returns: {
@@ -1157,6 +1179,63 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: string
+      }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      preview_apolices_filtradas: {
+        Args: { p_ramo?: string; p_seguradora_id?: string; p_user_id: string }
+        Returns: {
+          client_name: string
+          expiration_date: string
+          id: string
+          insurance_company: string
+          insurance_company_name: string
+          policy_number: string
+          premium_value: number
+          status: string
+          total_records: number
+          type: string
+        }[]
+      }
+      preview_clientes_filtrados: {
+        Args: { p_ramo?: string; p_seguradora_id?: string; p_user_id: string }
+        Returns: {
+          email: string
+          id: string
+          nome: string
+          phone: string
+          total_records: number
+        }[]
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {
