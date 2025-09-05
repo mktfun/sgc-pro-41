@@ -199,6 +199,9 @@ export function useFilteredPolicies() {
       insuranceCompany: 'todas',
       period: 'todos',
       producerId: 'todos',
+      ramo: 'todos',
+      customStart: null,
+      customEnd: null,
     });
   };
 

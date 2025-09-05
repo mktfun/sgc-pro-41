@@ -11,7 +11,7 @@ export function useApolicesPreview(filters: PreviewFilters) {
     queryKey: ['apolices-preview', user?.id, filters],
     queryFn: async () => {
       if (!user) return [] as any[];
-      const { data, error } = await supabase.rpc('preview_apolices_filtradas', {
+      const { data, error } = await supabase.rpc('preview_apolices_filtradas' as any, {
         p_user_id: user.id,
         p_seguradora_id: filters?.seguradoraId || null,
         p_ramo: filters?.ramo || null,

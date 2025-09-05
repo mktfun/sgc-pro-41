@@ -15,7 +15,7 @@ export function useClientesPreview(filters: PreviewFilters) {
     queryKey: ['clientes-preview', user?.id, filters],
     queryFn: async () => {
       if (!user) return [] as any[];
-      const { data, error } = await supabase.rpc('preview_clientes_filtrados', {
+      const { data, error } = await supabase.rpc('preview_clientes_filtrados' as any, {
         p_user_id: user.id,
         p_seguradora_id: filters?.seguradoraId || null,
         p_ramo: filters?.ramo || null,
