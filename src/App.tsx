@@ -28,6 +28,7 @@ import BrokerageSettings from "./pages/settings/BrokerageSettings";
 import ProducerSettings from "./pages/settings/ProducerSettings";
 import CompanySettings from "./pages/settings/CompanySettings";
 import TransactionSettings from "./pages/settings/TransactionSettings";
+import RamoSettings from "./pages/settings/RamoSettings";
 
 // Helper to redirect legacy detail routes to dashboard namespace
 function ParamRedirect({ toBase }: { toBase: string }) {
@@ -97,6 +98,7 @@ function App() {
                     <Route path="brokerages" element={<BrokerageSettings />} />
                     <Route path="producers" element={<ProducerSettings />} />
                     <Route path="companies" element={<CompanySettings />} />
+                    <Route path="ramos" element={<RamoSettings />} />
                     <Route path="transactions" element={<TransactionSettings />} />
                   </Route>
                 </Route>
