@@ -33,6 +33,7 @@ export type Database = {
           policy_number: string | null
           premium_value: number
           producer_id: string | null
+          ramo_id: string | null
           renewal_status: string | null
           start_date: string | null
           status: string
@@ -58,6 +59,7 @@ export type Database = {
           policy_number?: string | null
           premium_value?: number
           producer_id?: string | null
+          ramo_id?: string | null
           renewal_status?: string | null
           start_date?: string | null
           status?: string
@@ -83,6 +85,7 @@ export type Database = {
           policy_number?: string | null
           premium_value?: number
           producer_id?: string | null
+          ramo_id?: string | null
           renewal_status?: string | null
           start_date?: string | null
           status?: string
@@ -117,6 +120,13 @@ export type Database = {
             columns: ["producer_id"]
             isOneToOne: false
             referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apolices_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
             referencedColumns: ["id"]
           },
         ]
@@ -493,6 +503,30 @@ export type Database = {
           synced_at?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      migration_ramos_log: {
+        Row: {
+          created_at: string | null
+          id: string
+          new_ramo_id: string
+          normalized_name: string
+          old_type_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          new_ramo_id: string
+          normalized_name: string
+          old_type_value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          new_ramo_id?: string
+          normalized_name?: string
+          old_type_value?: string
         }
         Relationships: []
       }
