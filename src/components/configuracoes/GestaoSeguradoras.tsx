@@ -8,12 +8,16 @@ import { Label } from '@/components/ui/label';
 import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building2 } from 'lucide-react';
+import { Building2, Edit2, Save, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function GestaoSeguradoras() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
   
-  const { companies, loading: isLoading } = useSupabaseCompanies();
+  const { companies, loading: isLoading, updateCompany, isUpdating } = useSupabaseCompanies();
+  const { toast } = useToast();
   const { data: ramos = [] } = useSupabaseRamos();
   const { data: companyRamos = [] } = useCompanyRamosById(selectedCompanyId);
   const createCompanyRamo = useCreateCompanyRamo();
@@ -31,6 +35,40 @@ export function GestaoSeguradoras() {
       await createCompanyRamo.mutateAsync({
         company_id: selectedCompanyId,
         ramo_id: ramoId
+      });
+    }
+  };
+
+  const handleStartEdit = (company: any) => {
+    setEditingCompanyId(company.id);
+    setEditingName(company.name);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCompanyId(null);
+    setEditingName('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCompanyId || !editingName.trim()) return;
+    
+    try {
+      await updateCompany(editingCompanyId, {
+        name: editingName.trim()
+      });
+      
+      toast({
+        title: "Seguradora atualizada",
+        description: "O nome da seguradora foi atualizado com sucesso.",
+      });
+      
+      setEditingCompanyId(null);
+      setEditingName('');
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o nome da seguradora.",
+        variant: "destructive",
       });
     }
   };
@@ -94,30 +132,88 @@ export function GestaoSeguradoras() {
                 {companies.map((company) => (
                   <div
                     key={company.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    className={`p-3 border rounded-lg transition-colors ${
                       selectedCompanyId === company.id
                         ? 'bg-blue-500/20 border-blue-400/50 ring-2 ring-blue-400/30'
                         : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
                     }`}
-                    onClick={() => setSelectedCompanyId(company.id)}
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Badge 
-                          variant={selectedCompanyId === company.id ? "default" : "secondary"} 
-                          className={selectedCompanyId === company.id ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}
-                        >
-                          <Building2 className="w-3 h-3 mr-1" />
-                          {company.name}
-                        </Badge>
-                        <span className="text-xs text-slate-500">
-                          Criada em {new Date(company.createdAt).toLocaleDateString('pt-BR')}
-                        </span>
+                      <div 
+                        className="flex items-center gap-3 flex-1 cursor-pointer"
+                        onClick={() => setSelectedCompanyId(company.id)}
+                      >
+                        {editingCompanyId === company.id ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <Building2 className="w-4 h-4 text-blue-400" />
+                            <Input
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              className="h-8 text-sm bg-slate-700 border-slate-600"
+                              placeholder="Nome da seguradora"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveEdit();
+                                if (e.key === 'Escape') handleCancelEdit();
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <Badge 
+                              variant={selectedCompanyId === company.id ? "default" : "secondary"} 
+                              className={selectedCompanyId === company.id ? "bg-blue-600 text-white" : "bg-slate-700 text-slate-200"}
+                            >
+                              <Building2 className="w-3 h-3 mr-1" />
+                              {company.name}
+                            </Badge>
+                            <span className="text-xs text-slate-500">
+                              Criada em {new Date(company.createdAt).toLocaleDateString('pt-BR')}
+                            </span>
+                          </>
+                        )}
                       </div>
                       
-                      <Badge variant="outline" className="border-slate-600 text-slate-400">
-                        {companyRamos.filter((cr: any) => cr.company_id === company.id).length} ramos
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {editingCompanyId === company.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleSaveEdit}
+                              disabled={isUpdating || !editingName.trim()}
+                              className="h-8 w-8 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/20"
+                            >
+                              <Save className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleCancelEdit}
+                              disabled={isUpdating}
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-slate-300 hover:bg-slate-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(company);
+                            }}
+                            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-300 hover:bg-slate-600"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                        
+                        <Badge variant="outline" className="border-slate-600 text-slate-400">
+                          {companyRamos.filter((cr: any) => cr.company_id === company.id).length} ramos
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}
