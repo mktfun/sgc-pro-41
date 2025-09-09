@@ -116,6 +116,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "apolices_insurance_company_fkey"
+            columns: ["insurance_company"]
+            isOneToOne: false
+            referencedRelation: "companies_with_ramos_count"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "apolices_producer_id_fkey"
             columns: ["producer_id"]
             isOneToOne: false
@@ -444,6 +451,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_branches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_with_ramos_count"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_ramos: {
@@ -471,6 +485,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ramos_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_with_ramos_count"
             referencedColumns: ["id"]
           },
           {
@@ -539,6 +560,39 @@ export type Database = {
           synced_at?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      data_correction_audit: {
+        Row: {
+          corrected_at: string
+          correction_type: string
+          id: string
+          migration_context: string | null
+          new_user_id: string | null
+          old_user_id: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          corrected_at?: string
+          correction_type: string
+          id?: string
+          migration_context?: string | null
+          new_user_id?: string | null
+          old_user_id?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          corrected_at?: string
+          correction_type?: string
+          id?: string
+          migration_context?: string | null
+          new_user_id?: string | null
+          old_user_id?: string | null
+          record_id?: string
+          table_name?: string
         }
         Relationships: []
       }
@@ -1222,6 +1276,17 @@ export type Database = {
       }
     }
     Views: {
+      companies_with_ramos_count: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          name: string | null
+          ramos_count: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       sinistros_complete: {
         Row: {
           analysis_deadline: string | null
@@ -1264,6 +1329,13 @@ export type Database = {
             columns: ["insurance_company"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apolices_insurance_company_fkey"
+            columns: ["insurance_company"]
+            isOneToOne: false
+            referencedRelation: "companies_with_ramos_count"
             referencedColumns: ["id"]
           },
           {
@@ -1398,6 +1470,10 @@ export type Database = {
       show_trgm: {
         Args: { "": string }
         Returns: string[]
+      }
+      validate_user_data_access: {
+        Args: { target_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
