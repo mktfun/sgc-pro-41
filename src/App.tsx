@@ -20,6 +20,7 @@ import Sinistros from "./pages/Sinistros";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import AuthConfirm from "./pages/AuthConfirm";
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import ModernMobileMenuDemo from "./pages/ModernMobileMenuDemo";
@@ -60,6 +61,8 @@ function App() {
                 {/* Rota principal - Landing page para não autenticados */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/confirm" element={<AuthConfirm />} />
+                <Route path="/auth/reset-password" element={<AuthConfirm />} />
 
                 {/* Redirects for legacy/direct route access */}
                 <Route path="/appointments" element={<Navigate to="/dashboard/appointments" replace />} />

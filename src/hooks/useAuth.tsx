@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ensureDefaultTransactionTypes } from '@/services/transactionTypeService';
+import { useRateLimit } from './useRateLimit';
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Rate limiting para login/signup
+  const loginRateLimit = useRateLimit('login', {
+    maxAttempts: 5,
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    blockDurationMs: 30 * 60 * 1000 // 30 minutos de bloqueio
+  });
+
+  const signupRateLimit = useRateLimit('signup', {
+    maxAttempts: 3,
+    windowMs: 60 * 60 * 1000, // 1 hora
+    blockDurationMs: 2 * 60 * 60 * 1000 // 2 horas de bloqueio
+  });
+
+  const resetPasswordRateLimit = useRateLimit('reset', {
+    maxAttempts: 3,
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    blockDurationMs: 60 * 60 * 1000 // 1 hora de bloqueio
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +111,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+
+      // Verificar rate limiting por IP (usando email como fallback)
+      const identifier = email.toLowerCase();
+      if (!loginRateLimit.checkRateLimit(identifier)) {
+        const remainingTime = loginRateLimit.getRemainingTime(identifier);
+        const minutes = Math.ceil(remainingTime / 60);
+        toast.error(`Muitas tentativas de login. Tente novamente em ${minutes} minuto(s).`);
+        return { error: new Error('Rate limit exceeded') };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -103,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        // Resetar tentativas em caso de sucesso
+        loginRateLimit.resetAttempts(identifier);
         toast.success('Login realizado com sucesso!');
         return { error: null };
       }
@@ -122,7 +154,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, nomeCompleto: string) => {
     try {
       setLoading(true);
-      const redirectUrl = `${window.location.origin}/`;
+
+      // Verificar rate limiting por IP (usando email como fallback)
+      const identifier = email.toLowerCase();
+      if (!signupRateLimit.checkRateLimit(identifier)) {
+        const remainingTime = signupRateLimit.getRemainingTime(identifier);
+        const minutes = Math.ceil(remainingTime / 60);
+        toast.error(`Muitas tentativas de cadastro. Tente novamente em ${minutes} minuto(s).`);
+        return { error: new Error('Rate limit exceeded') };
+      }
+
+      const redirectUrl = `${window.location.origin}/auth/confirm`;
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -142,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        // Resetar tentativas em caso de sucesso
+        signupRateLimit.resetAttempts(identifier);
         toast.success('Cadastro realizado! Verifique seu email para confirmar a conta.');
         return { error: null };
       }
@@ -179,6 +223,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
+      // Verificar rate limiting
+      const identifier = email.toLowerCase();
+      if (!resetPasswordRateLimit.checkRateLimit(identifier)) {
+        const remainingTime = resetPasswordRateLimit.getRemainingTime(identifier);
+        const minutes = Math.ceil(remainingTime / 60);
+        toast.error(`Muitas solicitações de recuperação. Tente novamente em ${minutes} minuto(s).`);
+        return { error: new Error('Rate limit exceeded') };
+      }
+
       const redirectUrl = `${window.location.origin}/auth/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -190,7 +243,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error(friendlyMessage) };
       }
 
-      toast.success('Email de recuperação enviado!');
+      // Não resetar tentativas aqui - só resetar quando o usuário confirmar a nova senha
+      toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
       return { error: null };
     } catch (error) {
       const friendlyMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
