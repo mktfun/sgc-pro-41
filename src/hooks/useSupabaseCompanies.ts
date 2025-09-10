@@ -99,6 +99,31 @@ export function useSupabaseCompanies() {
     mutationFn: async (id: string) => {
       if (!user) throw new Error('User not authenticated');
 
+      // 1. Verificar dependências em 'apolices'
+      const { count: apolicesCount, error: apolicesError } = await supabase
+        .from('apolices')
+        .select('*', { count: 'exact', head: true })
+        .eq('insurance_company', id)
+        .eq('user_id', user.id);
+
+      if (apolicesError) throw new Error('Erro ao verificar apólices: ' + apolicesError.message);
+      if (apolicesCount && apolicesCount > 0) {
+        throw new Error(`Esta seguradora não pode ser excluída pois possui ${apolicesCount} apólices ativas.`);
+      }
+
+      // 2. Verificar dependências em 'company_ramos'
+      const { count: ramosCount, error: ramosError } = await supabase
+        .from('company_ramos')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', id)
+        .eq('user_id', user.id);
+
+      if (ramosError) throw new Error('Erro ao verificar ramos associados: ' + ramosError.message);
+      if (ramosCount && ramosCount > 0) {
+        throw new Error(`Esta seguradora não pode ser excluída pois está associada a ${ramosCount} ramos.`);
+      }
+
+      // 3. Se passou em tudo, pode deletar
       const { error } = await supabase
         .from('companies')
         .delete()
@@ -107,7 +132,7 @@ export function useSupabaseCompanies() {
 
       if (error) {
         console.error('Error deleting company:', error);
-        throw error;
+        throw new Error('Erro ao excluir seguradora: ' + error.message);
       }
     },
     onSuccess: () => {

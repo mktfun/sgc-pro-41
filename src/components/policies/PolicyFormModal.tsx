@@ -16,6 +16,8 @@ import { Stepper } from '@/components/ui/stepper';
 import { Edit3, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
 import { useSupabaseCompanies } from '@/hooks/useSupabaseCompanies';
+import { useSupabaseRamos } from '@/hooks/useSupabaseRamos';
+import { useRamosByCompany } from '@/hooks/useRamosByCompany';
 import { useSupabaseProducers } from '@/hooks/useSupabaseProducers';
 import { useSupabaseBrokerages } from '@/hooks/useSupabaseBrokerages';
 import { useSupabaseCompanyBranches } from '@/hooks/useSupabaseCompanyBranches';
@@ -92,7 +94,14 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
   });
 
   const selectedCompanyId = watch('insuranceCompany');
-  const availableBranches = companyBranches.filter(branch => branch.companyId === selectedCompanyId);
+  const { data: availableBranches = [] } = useRamosByCompany(selectedCompanyId);
+  
+  // Reset branch when company changes
+  React.useEffect(() => {
+    if (selectedCompanyId && watch('type')) {
+      setValue('type', '');
+    }
+  }, [selectedCompanyId, setValue, watch]);
   const currentStatus = watch('status');
   const startDate = watch('startDate');
 
@@ -272,9 +281,9 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
                   <SelectValue placeholder="Selecione o ramo" />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900/95 backdrop-blur-lg border-slate-700 text-white">
-                  {availableBranches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.name} className="hover:bg-white/10 focus:bg-white/10">
-                      {branch.name}
+                  {availableBranches.map((ramo) => (
+                    <SelectItem key={ramo.id} value={ramo.id} className="hover:bg-white/10 focus:bg-white/10">
+                      {ramo.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

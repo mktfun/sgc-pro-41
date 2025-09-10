@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building2, Edit2, Save, X } from 'lucide-react';
+import { Building2, Edit2, Save, X, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function GestaoSeguradoras() {
@@ -16,12 +16,33 @@ export function GestaoSeguradoras() {
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
   
-  const { companies, loading: isLoading, updateCompany, isUpdating } = useSupabaseCompanies();
+  const { companies, loading: isLoading, updateCompany, deleteCompany, isUpdating } = useSupabaseCompanies();
   const { toast } = useToast();
   const { data: ramos = [] } = useSupabaseRamos();
   const { data: companyRamos = [] } = useCompanyRamosById(selectedCompanyId);
   const createCompanyRamo = useCreateCompanyRamo();
   const deleteCompanyRamo = useDeleteCompanyRamo();
+
+  const handleDeleteCompany = async (companyId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta seguradora? A ação não pode ser desfeita.')) {
+      try {
+        await deleteCompany(companyId);
+        toast({
+          title: "Sucesso",
+          description: "Seguradora excluída com sucesso!",
+        });
+        if (selectedCompanyId === companyId) {
+          setSelectedCompanyId(null);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Erro",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleToggleRamo = async (ramoId: string, isCurrentlyAssociated: boolean) => {
     if (!selectedCompanyId) return;
@@ -197,17 +218,30 @@ export function GestaoSeguradoras() {
                             </Button>
                           </>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(company);
-                            }}
-                            className="h-8 w-8 p-0 text-slate-400 hover:text-slate-300 hover:bg-slate-600"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartEdit(company);
+                              }}
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-slate-300 hover:bg-slate-600"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCompany(company.id);
+                              }}
+                              className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </>
                         )}
                         
                         <Badge variant="outline" className="border-slate-600 text-slate-400">

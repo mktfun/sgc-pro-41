@@ -6,64 +6,73 @@ import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit2, Plus, Check, X } from 'lucide-react';
 import { useSupabaseRamos, useCreateRamo, useUpdateRamo, useDeleteRamo } from '@/hooks/useSupabaseRamos';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export function GestaoRamos() {
-  const [novoRamo, setNovoRamo] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newRamo, setNewRamo] = useState('');
+  const [editingRamo, setEditingRamo] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
-  
+
   const { data: ramos = [], isLoading } = useSupabaseRamos();
   const createRamo = useCreateRamo();
   const updateRamo = useUpdateRamo();
   const deleteRamo = useDeleteRamo();
 
-  const handleCreateRamo = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoRamo.trim()) return;
-    
-    await createRamo.mutateAsync({ nome: novoRamo.trim() });
-    setNovoRamo('');
+    if (!newRamo.trim()) return;
+
+    try {
+      await createRamo.mutateAsync({ nome: newRamo.trim() });
+      setNewRamo('');
+    } catch (error) {
+      // Error já é tratado no hook
+    }
   };
 
   const handleStartEdit = (ramo: any) => {
-    setEditingId(ramo.id);
+    setEditingRamo(ramo.id);
     setEditingName(ramo.nome);
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId || !editingName.trim()) return;
-    
-    await updateRamo.mutateAsync({
-      id: editingId,
-      data: { nome: editingName.trim() }
-    });
-    
-    setEditingId(null);
-    setEditingName('');
+    if (!editingName.trim() || !editingRamo) return;
+
+    try {
+      await updateRamo.mutateAsync({
+        id: editingRamo,
+        data: { nome: editingName.trim() }
+      });
+      setEditingRamo(null);
+      setEditingName('');
+    } catch (error) {
+      // Error já é tratado no hook
+    }
   };
 
   const handleCancelEdit = () => {
-    setEditingId(null);
+    setEditingRamo(null);
     setEditingName('');
   };
 
-  const handleDeleteRamo = async (id: string) => {
-    await deleteRamo.mutateAsync(id);
+  const handleDeleteRamo = async (ramoId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este ramo? A ação não pode ser desfeita.')) {
+      try {
+        await deleteRamo.mutateAsync(ramoId);
+      } catch (error: any) {
+        // O error já é tratado no hook com toast
+      }
+    }
   };
 
   if (isLoading) {
     return (
       <AppCard className="p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-white">Gestão de Ramos</h2>
-        </div>
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-slate-700 rounded w-1/4"></div>
-          <div className="h-10 bg-slate-700 rounded"></div>
-          <div className="space-y-2">
+          <div className="h-6 bg-slate-700 rounded w-1/3"></div>
+          <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 bg-slate-700 rounded"></div>
+              <div key={i} className="h-16 bg-slate-700 rounded"></div>
             ))}
           </div>
         </div>
@@ -73,64 +82,58 @@ export function GestaoRamos() {
 
   return (
     <AppCard className="p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white">Gestão de Ramos</h2>
-        <p className="text-sm text-slate-400 mt-2">
-          Gerencie os ramos de seguro disponíveis no sistema. Todos os ramos criados aqui poderão ser associados às seguradoras.
-        </p>
-      </div>
       <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Gestão de Ramos</h2>
+          <p className="text-sm text-slate-400 mt-2">
+            Gerencie os ramos de seguros oferecidos pelas seguradoras
+          </p>
+        </div>
+
         {/* Formulário para criar novo ramo */}
-        <form onSubmit={handleCreateRamo} className="flex gap-2">
+        <form onSubmit={handleCreate} className="flex gap-3">
           <div className="flex-1">
-            <Label htmlFor="novo-ramo" className="text-slate-300">
-              Nome do novo ramo
-            </Label>
             <Input
-              id="novo-ramo"
-              value={novoRamo}
-              onChange={(e) => setNovoRamo(e.target.value)}
-              placeholder="Ex: Auto, Vida, Residencial..."
+              value={newRamo}
+              onChange={(e) => setNewRamo(e.target.value)}
+              placeholder="Nome do novo ramo (ex: Auto, Residencial, Empresarial...)"
               className="bg-slate-800 border-slate-700 text-white"
               disabled={createRamo.isPending}
             />
           </div>
-          <div className="flex items-end">
-            <Button
-              type="submit"
-              disabled={!novoRamo.trim() || createRamo.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {createRamo.isPending ? 'Criando...' : 'Adicionar'}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            disabled={!newRamo.trim() || createRamo.isPending}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar
+          </Button>
         </form>
 
-        {/* Lista de ramos existentes */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-slate-300 mb-4">
-            Ramos cadastrados ({ramos.length})
-          </h3>
-          
+        {/* Lista de ramos */}
+        <div className="space-y-3">
           {ramos.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               <p>Nenhum ramo cadastrado ainda.</p>
               <p className="text-sm">Adicione o primeiro ramo usando o formulário acima.</p>
             </div>
           ) : (
-            <div className="max-h-[500px] overflow-y-auto space-y-2 pr-2">
-              {ramos.map((ramo) => (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-slate-300 mb-4">
+                Ramos cadastrados ({ramos.length})
+              </h4>
+              {ramos.map((ramo: any) => (
                 <div
                   key={ramo.id}
-                  className="flex items-center justify-between p-3 bg-slate-800 border border-slate-700 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-slate-800 border border-slate-700 rounded-lg"
                 >
-                  {editingId === ramo.id ? (
-                    <div className="flex items-center gap-2 flex-1">
+                  {editingRamo === ramo.id ? (
+                    <div className="flex items-center gap-3 flex-1">
                       <Input
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-900 border-slate-600 text-white"
                         autoFocus
                       />
                       <Button
@@ -145,6 +148,7 @@ export function GestaoRamos() {
                         size="sm"
                         variant="outline"
                         onClick={handleCancelEdit}
+                        disabled={updateRamo.isPending}
                         className="border-slate-600 text-slate-300 hover:bg-slate-700"
                       >
                         <X className="w-4 h-4" />
@@ -171,40 +175,14 @@ export function GestaoRamos() {
                           <Edit2 className="w-4 h-4" />
                         </Button>
                         
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-red-600 text-red-400 hover:bg-red-900"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-slate-900 border-slate-700">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="text-white">
-                                Excluir ramo "{ramo.nome}"?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription className="text-slate-400">
-                                Esta ação não pode ser desfeita. O ramo será removido de todas as
-                                associações com seguradoras e não poderá mais ser usado em novas apólices.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
-                                Cancelar
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteRamo(ramo.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                                disabled={deleteRamo.isPending}
-                              >
-                                {deleteRamo.isPending ? 'Excluindo...' : 'Excluir'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteRamo(ramo.id)}
+                          className="border-red-600 text-red-400 hover:bg-red-900"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </>
                   )}
@@ -214,13 +192,13 @@ export function GestaoRamos() {
           )}
         </div>
 
-        {/* Informações sobre a migração */}
+        {/* Informações sobre a normalização */}
         <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-          <h4 className="text-blue-400 font-medium mb-2">📋 Sobre a normalização</h4>
+          <h4 className="text-blue-400 font-medium mb-2">📋 Sobre os Ramos</h4>
           <div className="text-sm text-blue-300 space-y-1">
-            <p>• Os ramos existentes nas suas apólices foram automaticamente migrados e normalizados</p>
-            <p>• Agora você pode gerenciar os ramos de forma centralizada</p>
-            <p>• Novos ramos criados aqui ficarão disponíveis para associar às seguradoras</p>
+            <p>• Os ramos representam os tipos de seguros que as seguradoras oferecem</p>
+            <p>• Após criar os ramos, associe-os às seguradoras na "Gestão de Seguradoras"</p>
+            <p>• Os ramos antigos das apólices foram normalizados automaticamente</p>
           </div>
         </div>
       </div>

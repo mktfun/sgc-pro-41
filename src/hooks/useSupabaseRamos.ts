@@ -99,27 +99,52 @@ export function useUpdateRamo() {
 
 // Hook para deletar um ramo
 export function useDeleteRamo() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // 1. Verificar dependências em 'apolices'
+      const { count: apolicesCount, error: apolicesError } = await supabase
+        .from('apolices')
+        .select('*', { count: 'exact', head: true })
+        .eq('ramo_id', id)
+        .eq('user_id', user.id);
+
+      if (apolicesError) throw new Error('Erro ao verificar apólices: ' + apolicesError.message);
+      if (apolicesCount && apolicesCount > 0) {
+        throw new Error(`Este ramo não pode ser excluído pois está em uso por ${apolicesCount} apólices.`);
+      }
+
+      // 2. Verificar dependências em 'company_ramos'
+      const { count: companiesCount, error: companiesError } = await supabase
+        .from('company_ramos')
+        .select('*', { count: 'exact', head: true })
+        .eq('ramo_id', id)
+        .eq('user_id', user.id);
+
+      if (companiesError) throw new Error('Erro ao verificar seguradoras associadas: ' + companiesError.message);
+      if (companiesCount && companiesCount > 0) {
+        throw new Error(`Este ramo não pode ser excluído pois está associado a ${companiesCount} seguradoras.`);
+      }
+
+      // 3. Se passou, pode deletar
       const { error } = await supabase
         .from('ramos')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (error) throw new Error('Erro ao excluir ramo: ' + error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ramos'] });
       toast.success('Ramo excluído com sucesso!');
     },
     onError: (error: any) => {
-      if (error.code === '23503') {
-        toast.error('Não é possível excluir este ramo pois ele está sendo usado em apólices ou seguradoras.');
-      } else {
-        toast.error('Erro ao excluir ramo: ' + error.message);
-      }
+      toast.error(error.message);
     },
   });
 }
