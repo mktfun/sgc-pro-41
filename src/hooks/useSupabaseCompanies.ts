@@ -97,46 +97,94 @@ export function useSupabaseCompanies() {
 
   const deleteCompanyMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!user) throw new Error('User not authenticated');
+      console.log('🗑️ Iniciando exclusão da seguradora:', id);
+      
+      if (!user) {
+        console.error('❌ Usuário não autenticado');
+        throw new Error('User not authenticated');
+      }
 
-      // 1. Verificar dependências em 'apolices'
+      console.log('👤 Usuário autenticado:', user.id);
+
+      // 1. Verificar se a seguradora existe e pertence ao usuário
+      console.log('🔍 Verificando se a seguradora existe...');
+      const { data: companyExists, error: companyExistsError } = await supabase
+        .from('companies')
+        .select('id, name')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (companyExistsError) {
+        console.error('❌ Erro ao verificar existência da seguradora:', companyExistsError);
+        throw new Error('Seguradora não encontrada ou não autorizada: ' + companyExistsError.message);
+      }
+
+      console.log('✅ Seguradora encontrada:', companyExists.name);
+
+      // 2. Verificar dependências em 'apolices'
+      console.log('🔍 Verificando apólices dependentes...');
       const { count: apolicesCount, error: apolicesError } = await supabase
         .from('apolices')
         .select('*', { count: 'exact', head: true })
         .eq('insurance_company', id)
         .eq('user_id', user.id);
 
-      if (apolicesError) throw new Error('Erro ao verificar apólices: ' + apolicesError.message);
-      if (apolicesCount && apolicesCount > 0) {
+      console.log('📊 Contagem de apólices:', apolicesCount, 'Erro:', apolicesError);
+
+      if (apolicesError) {
+        console.error('❌ Erro ao verificar apólices:', apolicesError);
+        throw new Error('Erro ao verificar apólices: ' + apolicesError.message);
+      }
+      
+      if (apolicesCount !== null && apolicesCount > 0) {
+        console.log('❌ Exclusão bloqueada por apólices:', apolicesCount);
         throw new Error(`Esta seguradora não pode ser excluída pois possui ${apolicesCount} apólices ativas.`);
       }
 
-      // 2. Verificar dependências em 'company_ramos'
+      // 3. Verificar dependências em 'company_ramos'
+      console.log('🔍 Verificando ramos associados...');
       const { count: ramosCount, error: ramosError } = await supabase
         .from('company_ramos')
         .select('*', { count: 'exact', head: true })
         .eq('company_id', id)
         .eq('user_id', user.id);
 
-      if (ramosError) throw new Error('Erro ao verificar ramos associados: ' + ramosError.message);
-      if (ramosCount && ramosCount > 0) {
+      console.log('📊 Contagem de ramos:', ramosCount, 'Erro:', ramosError);
+
+      if (ramosError) {
+        console.error('❌ Erro ao verificar ramos:', ramosError);
+        throw new Error('Erro ao verificar ramos associados: ' + ramosError.message);
+      }
+      
+      if (ramosCount !== null && ramosCount > 0) {
+        console.log('❌ Exclusão bloqueada por ramos:', ramosCount);
         throw new Error(`Esta seguradora não pode ser excluída pois está associada a ${ramosCount} ramos.`);
       }
 
-      // 3. Se passou em tudo, pode deletar
-      const { error } = await supabase
+      console.log('✅ Validações passaram, iniciando exclusão...');
+
+      // 4. Executar a exclusão
+      const { error: deleteError } = await supabase
         .from('companies')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error deleting company:', error);
-        throw new Error('Erro ao excluir seguradora: ' + error.message);
+      if (deleteError) {
+        console.error('❌ Erro na exclusão:', deleteError);
+        throw new Error('Erro ao excluir seguradora: ' + deleteError.message);
       }
+
+      console.log('✅ Seguradora excluída com sucesso!');
+      return { success: true };
     },
     onSuccess: () => {
+      console.log('🔄 Invalidando cache de companies...');
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+    onError: (error) => {
+      console.error('❌ Erro capturado na mutation:', error);
     },
   });
 

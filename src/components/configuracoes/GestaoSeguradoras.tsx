@@ -24,23 +24,34 @@ export function GestaoSeguradoras() {
   const deleteCompanyRamo = useDeleteCompanyRamo();
 
   const handleDeleteCompany = async (companyId: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta seguradora? A ação não pode ser desfeita.')) {
+    const companyName = companies.find(c => c.id === companyId)?.name || 'Seguradora';
+    
+    if (window.confirm(`Tem certeza que deseja excluir "${companyName}"?\n\nEsta ação não pode ser desfeita e só será possível se a seguradora não possuir apólices ou ramos associados.`)) {
+      console.log('🗑️ Usuário confirmou exclusão da seguradora:', companyName);
+      
       try {
-        await deleteCompany(companyId);
+        const result = await deleteCompany(companyId);
+        console.log('✅ Resultado da exclusão:', result);
+        
         toast({
           title: "Sucesso",
-          description: "Seguradora excluída com sucesso!",
+          description: `"${companyName}" foi excluída com sucesso!`,
         });
+        
         if (selectedCompanyId === companyId) {
           setSelectedCompanyId(null);
         }
       } catch (error: any) {
+        console.error('❌ Erro na exclusão capturado no componente:', error);
+        
         toast({
-          title: "Erro",
-          description: error.message,
+          title: "Erro ao excluir",
+          description: error.message || 'Erro inesperado ao excluir a seguradora',
           variant: "destructive",
         });
       }
+    } else {
+      console.log('❌ Usuário cancelou a exclusão');
     }
   };
 
