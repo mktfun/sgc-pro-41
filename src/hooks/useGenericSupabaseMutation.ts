@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { mapDataToSupabase } from '@/utils/dataMappers';
 
 interface MutationConfig {
   tableName: 'clientes' | 'apolices' | 'transactions' | 'appointments';
@@ -23,9 +24,12 @@ export function useGenericSupabaseMutation(config: MutationConfig) {
     mutationFn: async (data: any) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      // Mapeia os dados para o formato correto do Supabase
+      const mappedData = mapDataToSupabase(tableName, { ...data, user_id: user.id });
+      
       const { data: result, error } = await supabase
         .from(tableName)
-        .insert([{ ...data, user_id: user.id }])
+        .insert([mappedData])
         .select()
         .single();
 
@@ -84,9 +88,12 @@ export function useGenericSupabaseMutation(config: MutationConfig) {
     mutationFn: async ({ id, ...data }: any) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      // Mapeia os dados para o formato correto do Supabase
+      const mappedData = mapDataToSupabase(tableName, data);
+      
       const { data: result, error } = await supabase
         .from(tableName)
-        .update(data)
+        .update(mappedData)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
