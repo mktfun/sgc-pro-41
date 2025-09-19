@@ -138,7 +138,7 @@ export function NewClientModal() {
                   value="address" 
                   className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
                 >
-                  Endereço e Contato
+                  Endereço
                 </TabsTrigger>
                 <TabsTrigger 
                   value="observations" 

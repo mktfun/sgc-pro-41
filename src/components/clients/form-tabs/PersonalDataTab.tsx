@@ -399,6 +399,46 @@ export function PersonalDataTab({ form }: PersonalDataTabProps) {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white">Telefone *</FormLabel>
+              <FormControl>
+                <MaskedInput
+                  {...field}
+                  mask="(99) 99999-9999"
+                  placeholder="(11) 99999-9999"
+                  className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="md:col-span-2">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white">Email *</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="email"
+                    placeholder="cliente@email.com"
+                    className="bg-black/20 border-white/20 text-white placeholder:text-white/50"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </div>
     </div>
   );
