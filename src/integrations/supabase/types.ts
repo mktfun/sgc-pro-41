@@ -731,12 +731,15 @@ export type Database = {
           ativo: boolean
           avatar_url: string | null
           birthday_message_template: string | null
+          commission_settlement_days: number
+          commission_settlement_strategy: string
           created_at: string
           email: string
           id: string
           nome_completo: string
           onboarding_completed: boolean | null
           role: Database["public"]["Enums"]["user_role"]
+          settle_commissions_automatically: boolean
           telefone: string | null
           updated_at: string
         }
@@ -744,12 +747,15 @@ export type Database = {
           ativo?: boolean
           avatar_url?: string | null
           birthday_message_template?: string | null
+          commission_settlement_days?: number
+          commission_settlement_strategy?: string
           created_at?: string
           email: string
           id: string
           nome_completo: string
           onboarding_completed?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          settle_commissions_automatically?: boolean
           telefone?: string | null
           updated_at?: string
         }
@@ -757,12 +763,15 @@ export type Database = {
           ativo?: boolean
           avatar_url?: string | null
           birthday_message_template?: string | null
+          commission_settlement_days?: number
+          commission_settlement_strategy?: string
           created_at?: string
           email?: string
           id?: string
           nome_completo?: string
           onboarding_completed?: boolean | null
           role?: Database["public"]["Enums"]["user_role"]
+          settle_commissions_automatically?: boolean
           telefone?: string | null
           updated_at?: string
         }
@@ -1653,6 +1662,10 @@ export type Database = {
       set_limit: {
         Args: { "": number }
         Returns: number
+      }
+      settle_due_commissions: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       show_limit: {
         Args: Record<PropertyKey, never>

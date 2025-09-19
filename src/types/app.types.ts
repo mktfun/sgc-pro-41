@@ -11,4 +11,7 @@ export interface Profile {
   updated_at: string;
   birthday_message_template?: string;
   onboarding_completed?: boolean;
+  settle_commissions_automatically?: boolean;
+  commission_settlement_days?: number;
+  commission_settlement_strategy?: 'first' | 'all' | 'custom';
 }

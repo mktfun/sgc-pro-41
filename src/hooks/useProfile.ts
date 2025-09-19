@@ -18,7 +18,7 @@ const fetchUserProfile = async (): Promise<Profile | null> => {
     throw new Error(error.message);
   }
 
-  return profile;
+  return profile as Profile;
 };
 
 export const useProfile = () => {
