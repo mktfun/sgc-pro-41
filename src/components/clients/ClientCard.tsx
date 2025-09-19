@@ -1,17 +1,29 @@
 
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, User } from 'lucide-react';
-import { Client } from '@/types';
+import { MessageCircle, User, TrendingUp, FileText } from 'lucide-react';
 import { generateWhatsAppUrl } from '@/utils/whatsapp';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/utils/formatCurrency';
 
-interface ClientCardProps {
-  client: Client;
-  activePoliciesCount: number;
+interface ClientWithStats {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  cpf_cnpj?: string;
+  total_policies: number;
+  total_premium: number;
+  total_commission: number;
+  active_policies: number;
+  budget_policies: number;
 }
 
-export function ClientCard({ client, activePoliciesCount }: ClientCardProps) {
+interface ClientCardProps {
+  client: ClientWithStats;
+}
+
+export function ClientCard({ client }: ClientCardProps) {
   const navigate = useNavigate();
 
   const handleWhatsAppClick = (e: React.MouseEvent) => {
@@ -35,34 +47,59 @@ export function ClientCard({ client, activePoliciesCount }: ClientCardProps) {
           <User size={20} className="text-blue-400" />
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold text-white">{client.name}</h3>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="border-white/20 text-white/80 bg-white/10">
-              {activePoliciesCount} {activePoliciesCount === 1 ? 'seguro' : 'seguros'}
-            </Badge>
-          </div>
+          <h3 className="font-semibold text-white truncate">{client.name}</h3>
+          <p className="text-sm text-white/60 truncate">{client.email || client.phone}</p>
         </div>
       </div>
 
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center justify-between text-sm text-white/60">
-          <div className="flex items-center">
-            <span className="font-medium w-16 text-white/80">Phone:</span>
-            <span>{client.phone}</span>
+      {/* Estatísticas de valor de negócio */}
+      <div className="space-y-3 mb-4">
+        {/* Linha 1: Apólices */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-white/60">
+            <FileText size={14} />
+            <span>Apólices</span>
           </div>
-          <button
-            onClick={handleWhatsAppClick}
-            className="text-green-400 hover:text-green-300 transition-colors p-1"
-            title="Enviar WhatsApp"
-          >
-            <MessageCircle size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-blue-400/30 text-blue-400 bg-blue-500/10 text-xs">
+              {client.active_policies} ativas
+            </Badge>
+            {client.budget_policies > 0 && (
+              <Badge variant="outline" className="border-yellow-400/30 text-yellow-400 bg-yellow-500/10 text-xs">
+                {client.budget_policies} orçamentos
+              </Badge>
+            )}
+          </div>
         </div>
-        <div className="flex items-center text-sm text-white/60">
-          <span className="font-medium w-16 text-white/80">Email:</span>
-          <span className="truncate">{client.email}</span>
+
+        {/* Linha 2: Prêmio Total */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-white/60">Prêmio Total</span>
+          <span className="font-semibold text-white">{formatCurrency(client.total_premium)}</span>
+        </div>
+
+        {/* Linha 3: Comissão Total (Destaque) */}
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <TrendingUp size={14} />
+            <span className="font-medium">Comissão Total</span>
+          </div>
+          <span className="font-bold text-emerald-400">{formatCurrency(client.total_commission)}</span>
         </div>
       </div>
+
+      {/* Contato WhatsApp */}
+      {client.phone && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleWhatsAppClick}
+            className="text-green-400 hover:text-green-300 transition-colors p-2 rounded-full hover:bg-green-500/10"
+            title="Enviar WhatsApp"
+          >
+            <MessageCircle size={18} />
+          </button>
+        </div>
+      )}
     </GlassCard>
   );
 }

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { AppCard } from '@/components/ui/app-card';
 import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/utils/formatCurrency';
+import { TrendingUp, FileText } from 'lucide-react';
 
 interface PreviewCardProps {
   title: string;
@@ -35,12 +37,14 @@ export default function PreviewCard({ title, data, linkTo, filters, extraParams 
         <div className="space-y-3">
           {list.map((item: any) => {
             const isPolicy = Boolean(item.policy_number || item.policyNumber);
+            const isClientWithStats = Boolean(item.total_policies !== undefined);
             const titleText = isPolicy ? (item.policy_number || item.policyNumber) : (item.nome || item.name || 'Sem nome');
             const subtitle = isPolicy ? (item.client_name || '') : (item.email || '');
             const insurer = (item.insurance_company_name || item.insurance_company) ? String(item.insurance_company_name || item.insurance_company) : undefined;
             const ramo = item.type || item.ramo || undefined;
             const phone = !isPolicy ? (item.phone || item.telefone || undefined) : undefined;
             const detailUrl = isPolicy ? `/dashboard/policies/${item.id}` : `/dashboard/clients/${item.id}`;
+            
             return (
               <Link
                 to={detailUrl}
@@ -49,13 +53,43 @@ export default function PreviewCard({ title, data, linkTo, filters, extraParams 
               >
                 <span className="text-slate-200 text-sm font-medium truncate">{titleText}</span>
                 {subtitle && <span className="text-slate-400 text-xs truncate">{subtitle}</span>}
-                {(insurer || ramo) && (
-                  <span className="text-slate-500 text-[11px] truncate">
-                    {[insurer, ramo].filter(Boolean).join(' • ')}
-                  </span>
+                
+                {/* Mostrar estatísticas para clientes com dados agregados */}
+                {isClientWithStats && (
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1 text-slate-400">
+                        <FileText size={10} />
+                        <span>Apólices</span>
+                      </div>
+                      <span className="text-slate-300">{item.total_policies}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Prêmio</span>
+                      <span className="text-slate-300">{formatCurrency(item.total_premium)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1 text-emerald-400">
+                        <TrendingUp size={10} />
+                        <span>Comissão</span>
+                      </div>
+                      <span className="text-emerald-400 font-medium">{formatCurrency(item.total_commission)}</span>
+                    </div>
+                  </div>
                 )}
-                {phone && (
-                  <span className="text-slate-500 text-[11px] truncate">{phone}</span>
+                
+                {/* Layout original para apólices e clientes sem estatísticas */}
+                {!isClientWithStats && (
+                  <>
+                    {(insurer || ramo) && (
+                      <span className="text-slate-500 text-[11px] truncate">
+                        {[insurer, ramo].filter(Boolean).join(' • ')}
+                      </span>
+                    )}
+                    {phone && (
+                      <span className="text-slate-500 text-[11px] truncate">{phone}</span>
+                    )}
+                  </>
                 )}
               </Link>
             );

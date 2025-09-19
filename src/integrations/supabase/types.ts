@@ -109,6 +109,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "apolices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "apolices_insurance_company_fkey"
             columns: ["insurance_company"]
             isOneToOne: false
@@ -199,6 +206,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_parent_appointment_id_fkey"
             columns: ["parent_appointment_id"]
             isOneToOne: false
@@ -242,6 +256,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_greetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
             referencedColumns: ["id"]
           },
           {
@@ -1052,6 +1073,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sinistros_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sinistros_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
@@ -1116,6 +1144,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
             referencedColumns: ["id"]
           },
           {
@@ -1269,6 +1304,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
@@ -1315,6 +1357,24 @@ export type Database = {
       }
     }
     Views: {
+      clients_with_stats: {
+        Row: {
+          active_policies: number | null
+          budget_policies: number | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          status: string | null
+          total_commission: number | null
+          total_policies: number | null
+          total_premium: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       companies_with_ramos_count: {
         Row: {
           created_at: string | null
@@ -1393,6 +1453,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sinistros_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sinistros_policy_id_fkey"
             columns: ["policy_id"]
             isOneToOne: false
@@ -1442,6 +1509,24 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+        }[]
+      }
+      get_clients_with_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          active_policies: number | null
+          budget_policies: number | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          status: string | null
+          total_commission: number | null
+          total_policies: number | null
+          total_premium: number | null
+          user_id: string | null
         }[]
       }
       get_empresas_com_metricas: {

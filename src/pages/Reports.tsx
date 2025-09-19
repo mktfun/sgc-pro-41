@@ -14,6 +14,7 @@ import { EnhancedExpirationCalendarChart } from '@/components/reports/enhanced/E
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
 import { useFilteredDataForReports } from '@/hooks/useFilteredDataForReports';
 import { useClientesPreview } from '@/hooks/useClientesPreview';
+import { useClientesPreviewWithStats } from '@/hooks/useClientesPreviewWithStats';
 import { useApolicesPreview } from '@/hooks/useApolicesPreview';
 import PreviewCard from '@/components/PreviewCard';
 
@@ -38,7 +39,7 @@ export default function Reports() {
     seguradoraId: (filtrosGlobais.seguradoraIds && filtrosGlobais.seguradoraIds[0]) || null,
     ramo: (filtrosGlobais.ramos && filtrosGlobais.ramos[0]) || null,
   } as const;
-  const { data: clientesPreview } = useClientesPreview(previewFilters);
+  const { data: clientesPreview } = useClientesPreviewWithStats(previewFilters);
   const { data: apolicesPreview } = useApolicesPreview(previewFilters);
   const isFilterActive = Boolean(
     (filtrosGlobais.seguradoraIds && filtrosGlobais.seguradoraIds.length > 0) ||
