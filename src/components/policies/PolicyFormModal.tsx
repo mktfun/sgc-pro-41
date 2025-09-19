@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Stepper } from '@/components/ui/stepper';
 import { Edit3, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useClients, usePolicies } from '@/hooks/useAppData';
+import { QuickAddClientModal } from '@/components/clients/QuickAddClientModal';
 import { useSupabaseCompanies } from '@/hooks/useSupabaseCompanies';
 import { useSupabaseRamos } from '@/hooks/useSupabaseRamos';
 import { useRamosByCompany } from '@/hooks/useRamosByCompany';
@@ -40,7 +41,7 @@ const STEPS = [
 ];
 
 export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAdded }: PolicyFormModalProps) {
-  const { clients } = useClients();
+  const { clients, refetch: refetchClients } = useClients();
   const { addPolicy, updatePolicy } = usePolicies();
   const { companies } = useSupabaseCompanies();
   const { producers } = useSupabaseProducers();
@@ -193,6 +194,13 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     label: `${client.name} - ${client.phone}`
   }));
 
+  const handleClientCreated = (newClient: any) => {
+    // Refetch clients to include the new one
+    refetchClients();
+    // Auto-select the new client
+    setValue('clientId', newClient.id);
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -201,15 +209,19 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
             {/* Cliente Selection */}
             <div>
               <Label htmlFor="clientId" className="text-white">Cliente *</Label>
-              <Combobox
-                options={clientOptions}
-                value={watch('clientId')}
-                onValueChange={(value) => setValue('clientId', value)}
-                placeholder="Buscar e selecionar cliente..."
-                searchPlaceholder="Digite o nome ou telefone do cliente..."
-                emptyText="Nenhum cliente encontrado."
-                className="mt-1"
-              />
+              <div className="flex gap-2 mt-1">
+                <div className="flex-1">
+                  <Combobox
+                    options={clientOptions}
+                    value={watch('clientId')}
+                    onValueChange={(value) => setValue('clientId', value)}
+                    placeholder="Buscar e selecionar cliente..."
+                    searchPlaceholder="Digite o nome ou telefone do cliente..."
+                    emptyText="Nenhum cliente encontrado."
+                  />
+                </div>
+                <QuickAddClientModal onClientCreated={handleClientCreated} />
+              </div>
               {errors.clientId && (
                 <p className="text-red-400 text-sm mt-1">{errors.clientId.message}</p>
               )}
