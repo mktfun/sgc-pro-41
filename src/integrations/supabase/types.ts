@@ -1458,9 +1458,59 @@ export type Database = {
           total_funcionarios_ativos: number
         }[]
       }
+      get_user_companies_with_ramos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          id: string | null
+          name: string | null
+          ramos_count: number | null
+          updated_at: string | null
+          user_id: string | null
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string
+      }
+      get_user_sinistros_complete: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          analysis_deadline: string | null
+          approved_amount: number | null
+          assigned_to: string | null
+          brokerage_id: number | null
+          brokerage_name: string | null
+          circumstances: string | null
+          claim_amount: number | null
+          claim_number: string | null
+          claim_type: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          company_name: string | null
+          created_at: string | null
+          deductible_amount: number | null
+          description: string | null
+          documents_checklist: Json | null
+          evidence_urls: string[] | null
+          id: string | null
+          insurance_company: string | null
+          location_occurrence: string | null
+          occurrence_date: string | null
+          payment_date: string | null
+          police_report_number: string | null
+          policy_id: string | null
+          policy_number: string | null
+          priority: string | null
+          producer_id: string | null
+          producer_name: string | null
+          report_date: string | null
+          resolution_date: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }[]
       }
       gtrgm_compress: {
         Args: { "": unknown }
