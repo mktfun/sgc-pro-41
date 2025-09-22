@@ -1254,6 +1254,7 @@ export type Database = {
           due_date: string
           id: string
           nature: string
+          paid_date: string | null
           policy_id: string | null
           producer_id: string | null
           status: string
@@ -1273,6 +1274,7 @@ export type Database = {
           due_date: string
           id?: string
           nature: string
+          paid_date?: string | null
           policy_id?: string | null
           producer_id?: string | null
           status: string
@@ -1292,6 +1294,7 @@ export type Database = {
           due_date?: string
           id?: string
           nature?: string
+          paid_date?: string | null
           policy_id?: string | null
           producer_id?: string | null
           status?: string
