@@ -5,6 +5,7 @@ import { User, Search, Loader2, ArrowUpDown, Grid3X3, List } from 'lucide-react'
 import { PrivacyToggle } from '@/components/ui/PrivacyToggle';
 import { useSupabaseClients } from '@/hooks/useSupabaseClients';
 import { useAllClients } from '@/hooks/useAllClients';
+import { useClientsWithStats } from '@/hooks/useClientsWithStats';
 import { usePolicies, useCompanies, useCompanyBranches } from '@/hooks/useAppData';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { useSearchParams } from 'react-router-dom';
@@ -72,6 +73,9 @@ export default function Clients() {
       ramo: ramoFiltro !== 'all' ? ramoFiltro : null
     }
   });
+
+  // 🚀 **HOOK PARA CLIENTES COM ESTATÍSTICAS** (para dados agregados)
+  const { data: clientsWithStats, isLoading: loadingStats } = useClientsWithStats();
 
   // 🚀 **HOOK PARA TODOS OS CLIENTES** (para deduplicação e busca global)
   const { allClients, loading: loadingAll } = useAllClients();
@@ -328,8 +332,9 @@ export default function Clients() {
             // Renderiza baseado no modo de visualização selecionado
             viewMode === 'cards' ? (
               <ClientCardView 
-                clients={clientesFiltrados} 
+                clients={clientsWithStats && !loadingStats ? clientsWithStats : clientesFiltrados} 
                 getActivePoliciesCount={getClientPoliciesCount}
+                useStatsData={!!(clientsWithStats && !loadingStats)}
               />
             ) : (
               <ClientListView 
