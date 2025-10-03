@@ -13,6 +13,9 @@ Você tem acesso às seguintes ferramentas:
 - search_policies: Buscar apólices por número, cliente, seguradora ou status
 - get_financial_summary: Obter resumo financeiro de transações
 - analyze_renewals: Analisar apólices próximas ao vencimento
+- create_appointment: Criar agendamentos com clientes
+- search_claims: Buscar sinistros registrados
+- generate_report: Gerar relatórios estruturados
 
 Você deve:
 1. Responder em português brasileiro de forma clara e profissional
@@ -80,6 +83,54 @@ const TOOLS = [
         },
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_appointment",
+      description: "Agenda um novo compromisso, reunião ou tarefa com um cliente em uma data e hora específicas.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_name: { type: "string", description: "Nome exato do cliente para o qual o agendamento será criado." },
+          title: { type: "string", description: "O título ou motivo do agendamento. Ex: 'Reunião de Renovação'." },
+          date: { type: "string", description: "A data do agendamento no formato AAAA-MM-DD." },
+          time: { type: "string", description: "A hora do agendamento no formato HH:MM." },
+          notes: { type: "string", description: "Notas ou comentários adicionais sobre o agendamento." }
+        },
+        required: ["client_name", "title", "date", "time"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "search_claims",
+      description: "Busca sinistros (claims) registrados no sistema, com opção de filtrar por cliente ou status.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_name: { type: "string", description: "Nome do cliente para filtrar os sinistros." },
+          status: { type: "string", enum: ["Aberto", "Em Análise", "Aprovado", "Negado", "Fechado"], description: "Status atual do sinistro." }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_report",
+      description: "Coleta e estrutura dados para gerar um relatório. Retorna os dados em formato JSON ou um resumo em texto.",
+      parameters: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["financial", "renewals", "clients", "commissions"], description: "O tipo de relatório a ser gerado." },
+          period: { type: "string", enum: ["current-month", "last-month", "current-year"], description: "Período de tempo para o relatório." },
+          format: { type: "string", enum: ["json", "summary"], default: "summary", description: "Formato da saída: 'json' para dados brutos, 'summary' para um resumo em texto." }
+        },
+        required: ["type", "period"]
+      }
+    }
   }
 ];
 
@@ -89,6 +140,7 @@ async function executeToolCall(toolCall: any, supabase: any, userId: string) {
   console.log(`Executing tool: ${name}`, args);
 
   switch (name) {
+    // --- FERRAMENTAS FASE 2 ---
     case 'search_clients': {
       let query = supabase
         .from('clientes')
@@ -117,11 +169,14 @@ async function executeToolCall(toolCall: any, supabase: any, userId: string) {
         query = query.eq('status', args.status);
       }
       if (args.client_name) {
-        // Esta é uma busca em tabela relacionada, requer um RPC ou uma view para eficiência.
-        // Simplificação por agora: Buscaremos o ID do cliente primeiro.
-        const { data: clientData } = await supabase.from('clientes').select('id').ilike('name', `%${args.client_name}%`).eq('user_id', userId).single();
-        if(clientData) {
-            query = query.eq('client_id', clientData.id);
+        const { data: clientData } = await supabase
+          .from('clientes')
+          .select('id')
+          .ilike('name', `%${args.client_name}%`)
+          .eq('user_id', userId)
+          .single();
+        if (clientData) {
+          query = query.eq('client_id', clientData.id);
         }
       }
 
@@ -129,54 +184,196 @@ async function executeToolCall(toolCall: any, supabase: any, userId: string) {
       if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
       return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
     }
-      
+
     case 'get_financial_summary': {
-        const today = new Date();
-        let startDate;
+      const today = new Date();
+      let startDate;
 
-        if (args.period === 'last-30-days') {
-            startDate = new Date(today.setDate(today.getDate() - 30));
-        } else if (args.period === 'current-year') {
-            startDate = new Date(today.getFullYear(), 0, 1);
-        } else { // current-month
-            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        }
+      if (args.period === 'last-30-days') {
+        startDate = new Date(today.setDate(today.getDate() - 30));
+      } else if (args.period === 'current-year') {
+        startDate = new Date(today.getFullYear(), 0, 1);
+      } else { // current-month
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      }
 
-        const { data, error } = await supabase
-            .from('transactions')
-            .select('amount, status')
-            .eq('user_id', userId)
-            .eq('nature', 'RECEITA')
-            .gte('transaction_date', startDate.toISOString());
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('amount, status')
+        .eq('user_id', userId)
+        .eq('nature', 'RECEITA')
+        .gte('transaction_date', startDate.toISOString());
 
-        if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
-        
-        const summary = data.reduce((acc, t) => {
-            if (t.status === 'PAGO') acc.realizadas += Number(t.amount);
-            if (t.status === 'PENDENTE') acc.pendentes += Number(t.amount);
-            acc.total += Number(t.amount);
-            return acc;
-        }, { realizadas: 0, pendentes: 0, total: 0 });
+      if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+      
+      const summary = data.reduce((acc, t) => {
+        if (t.status === 'PAGO') acc.realizadas += Number(t.amount);
+        if (t.status === 'PENDENTE') acc.pendentes += Number(t.amount);
+        acc.total += Number(t.amount);
+        return acc;
+      }, { realizadas: 0, pendentes: 0, total: 0 });
 
-        return { tool_call_id: toolCall.id, output: JSON.stringify(summary) };
+      return { tool_call_id: toolCall.id, output: JSON.stringify(summary) };
     }
 
     case 'analyze_renewals': {
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + (args.days_ahead || 30));
+
+      const { data, error } = await supabase
+        .from('apolices')
+        .select('policy_number, expiration_date, status, clientes(name)')
+        .eq('user_id', userId)
+        .eq('status', 'Ativa')
+        .gte('expiration_date', today.toISOString())
+        .lte('expiration_date', futureDate.toISOString())
+        .order('expiration_date', { ascending: true });
+
+      if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+      return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
+    }
+
+    // --- NOVAS FERRAMENTAS FASE 3 ---
+    case 'create_appointment': {
+      // Passo 1: Encontrar o ID do cliente a partir do nome
+      const { data: clientData, error: clientError } = await supabase
+        .from('clientes')
+        .select('id')
+        .ilike('name', `%${args.client_name}%`)
+        .eq('user_id', userId)
+        .single();
+
+      if (clientError || !clientData) {
+        return { tool_call_id: toolCall.id, output: JSON.stringify({ error: `Cliente '${args.client_name}' não encontrado.` }) };
+      }
+
+      // Passo 2: Inserir o agendamento
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert({
+          client_id: clientData.id,
+          user_id: userId,
+          title: args.title,
+          date: args.date,
+          time: args.time,
+          notes: args.notes || '',
+          status: 'Pendente'
+        })
+        .select()
+        .single();
+      
+      if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+      return { tool_call_id: toolCall.id, output: JSON.stringify({ success: true, appointment_id: data.id, title: data.title, date: data.date, time: data.time }) };
+    }
+      
+    case 'search_claims': {
+      let query = supabase
+        .from('sinistros')
+        .select('id, claim_number, status, occurrence_date, claim_type, apolices(policy_number), clientes(name)')
+        .eq('user_id', userId);
+      
+      if (args.status) {
+        query = query.eq('status', args.status);
+      }
+      if (args.client_name) {
+        const { data: clientData } = await supabase
+          .from('clientes')
+          .select('id')
+          .ilike('name', `%${args.client_name}%`)
+          .eq('user_id', userId)
+          .single();
+        if (clientData) {
+          query = query.eq('client_id', clientData.id);
+        }
+      }
+
+      const { data, error } = await query;
+      if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+      return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
+    }
+
+    case 'generate_report': {
+      if (args.type === 'renewals') {
         const today = new Date();
         const futureDate = new Date();
-        futureDate.setDate(today.getDate() + (args.days_ahead || 30));
+        futureDate.setDate(today.getDate() + 30);
 
         const { data, error } = await supabase
-            .from('apolices')
-            .select('policy_number, expiration_date, status, clientes(name)')
-            .eq('user_id', userId)
-            .eq('status', 'Ativa')
-            .gte('expiration_date', today.toISOString())
-            .lte('expiration_date', futureDate.toISOString())
-            .order('expiration_date', { ascending: true });
+          .from('apolices')
+          .select('policy_number, expiration_date, premium_value, status, clientes(name, phone)')
+          .eq('user_id', userId)
+          .eq('status', 'Ativa')
+          .gte('expiration_date', today.toISOString())
+          .lte('expiration_date', futureDate.toISOString())
+          .order('expiration_date', { ascending: true });
 
         if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+        
+        if (args.format === 'summary') {
+          const totalPremium = data.reduce((sum, p) => sum + Number(p.premium_value || 0), 0);
+          const summaryText = `Relatório de Renovações (${args.period}): Encontradas ${data.length} apólices vencendo nos próximos 30 dias. Prêmio total: R$ ${totalPremium.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. ${data.length > 0 ? `A mais próxima é a apólice ${data[0]?.policy_number} do cliente ${data[0]?.clientes.name} em ${new Date(data[0]?.expiration_date).toLocaleDateString('pt-BR')}.` : ''}`;
+          return { tool_call_id: toolCall.id, output: JSON.stringify({ summary: summaryText }) };
+        }
         return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
+      }
+
+      if (args.type === 'financial' || args.type === 'commissions') {
+        const today = new Date();
+        let startDate;
+
+        if (args.period === 'last-month') {
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        } else if (args.period === 'current-year') {
+          startDate = new Date(today.getFullYear(), 0, 1);
+        } else { // current-month
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('amount, status, nature, description, transaction_date')
+          .eq('user_id', userId)
+          .gte('transaction_date', startDate.toISOString());
+
+        if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+
+        if (args.format === 'summary') {
+          const summary = data.reduce((acc, t) => {
+            if (t.nature === 'RECEITA') {
+              acc.totalReceitas += Number(t.amount);
+              if (t.status === 'PAGO') acc.receitasRecebidas += Number(t.amount);
+            } else {
+              acc.totalDespesas += Number(t.amount);
+              if (t.status === 'PAGO') acc.despesasPagas += Number(t.amount);
+            }
+            return acc;
+          }, { totalReceitas: 0, receitasRecebidas: 0, totalDespesas: 0, despesasPagas: 0 });
+
+          const summaryText = `Relatório Financeiro (${args.period}): Receitas totais: R$ ${summary.totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Recebidas: R$ ${summary.receitasRecebidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Despesas totais: R$ ${summary.totalDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Pagas: R$ ${summary.despesasPagas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}). Saldo: R$ ${(summary.receitasRecebidas - summary.despesasPagas).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`;
+          return { tool_call_id: toolCall.id, output: JSON.stringify({ summary: summaryText }) };
+        }
+        return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
+      }
+
+      if (args.type === 'clients') {
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('id, name, email, phone, status, created_at')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) return { tool_call_id: toolCall.id, output: JSON.stringify({ error: error.message }) };
+
+        if (args.format === 'summary') {
+          const totalAtivos = data.filter(c => c.status === 'Ativo').length;
+          const summaryText = `Relatório de Clientes: Total de ${data.length} clientes cadastrados. Ativos: ${totalAtivos}. Inativos: ${data.length - totalAtivos}.`;
+          return { tool_call_id: toolCall.id, output: JSON.stringify({ summary: summaryText }) };
+        }
+        return { tool_call_id: toolCall.id, output: JSON.stringify(data) };
+      }
+
+      return { tool_call_id: toolCall.id, output: JSON.stringify({ error: `Tipo de relatório '${args.type}' ainda não implementado.` }) };
     }
 
     default:
