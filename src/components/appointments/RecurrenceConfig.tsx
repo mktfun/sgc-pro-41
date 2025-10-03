@@ -50,7 +50,7 @@ export function RecurrenceConfig({ onRecurrenceChange, initialRecurrence }: Recu
       yearly: 'YEARLY'
     };
 
-    const rule = `FREQ=${freqMap[freq as keyof typeof freqMap]}${int > 1 ? `;INTERVAL=${int}` : ''}`;
+    const rule = `FREQ=${freqMap[freq as keyof typeof freqMap]};INTERVAL=${int}`;
     onRecurrenceChange(rule);
   };
 

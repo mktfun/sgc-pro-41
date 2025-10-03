@@ -15,28 +15,41 @@ function calculateNextDate(currentDate: string, currentTime: string, rule: strin
   const baseDate = new Date(`${currentDate}T${currentTime}`);
   let nextDate: Date;
 
-  if (rule.includes('FREQ=DAILY')) {
+  console.log('Calculando próxima data. Regra recebida:', rule);
+
+  // Suporta formato RRULE completo (FREQ=MONTHLY;INTERVAL=1) e formato legado simplificado (monthly)
+  const normalizedRule = rule.toUpperCase();
+  
+  if (normalizedRule.includes('FREQ=DAILY') || normalizedRule === 'DAILY') {
     const interval = rule.match(/INTERVAL=(\d+)/);
     const days = interval ? parseInt(interval[1]) : 1;
     nextDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
-  } else if (rule.includes('FREQ=WEEKLY')) {
+    console.log(`Calculando DAILY com intervalo ${days} dias`);
+  } else if (normalizedRule.includes('FREQ=WEEKLY') || normalizedRule === 'WEEKLY') {
     const interval = rule.match(/INTERVAL=(\d+)/);
     const weeks = interval ? parseInt(interval[1]) : 1;
     nextDate = new Date(baseDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
-  } else if (rule.includes('FREQ=MONTHLY')) {
+    console.log(`Calculando WEEKLY com intervalo ${weeks} semanas`);
+  } else if (normalizedRule.includes('FREQ=MONTHLY') || normalizedRule === 'MONTHLY') {
     const interval = rule.match(/INTERVAL=(\d+)/);
     const months = interval ? parseInt(interval[1]) : 1;
     nextDate = new Date(baseDate);
     nextDate.setMonth(nextDate.getMonth() + months);
-  } else if (rule.includes('FREQ=YEARLY')) {
+    console.log(`Calculando MONTHLY com intervalo ${months} meses`);
+  } else if (normalizedRule.includes('FREQ=YEARLY') || normalizedRule === 'YEARLY') {
     const interval = rule.match(/INTERVAL=(\d+)/);
     const years = interval ? parseInt(interval[1]) : 1;
     nextDate = new Date(baseDate);
     nextDate.setFullYear(nextDate.getFullYear() + years);
+    console.log(`Calculando YEARLY com intervalo ${years} anos`);
   } else {
+    // Fallback: assume anual se não reconhecer
     nextDate = new Date(baseDate);
     nextDate.setFullYear(nextDate.getFullYear() + 1);
+    console.log('Regra não reconhecida, usando fallback anual');
   }
+
+  console.log('Próxima data calculada:', nextDate.toISOString().split('T')[0]);
 
   return {
     nextDate,
