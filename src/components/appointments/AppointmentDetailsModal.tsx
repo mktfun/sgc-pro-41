@@ -3,15 +3,13 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, User, FileText, CheckCircle, RotateCcw, X } from 'lucide-react';
+import { Calendar, Clock, User, FileText, CheckCircle, X } from 'lucide-react';
 import { useSupabaseAppointments } from '@/hooks/useSupabaseAppointments';
 import { useClients } from '@/hooks/useAppData';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { RecurrenceConfig } from './RecurrenceConfig';
 import { AppCard } from '@/components/ui/app-card';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AppointmentDetailsModalProps {
   appointment: any;
@@ -22,8 +20,6 @@ interface AppointmentDetailsModalProps {
 export function AppointmentDetailsModal({ appointment, open, onOpenChange }: AppointmentDetailsModalProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
-  const [showRecurrenceConfig, setShowRecurrenceConfig] = useState(false);
-  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(appointment?.recurrence_rule || null);
   const { updateAppointment } = useSupabaseAppointments();
   const { clients } = useClients();
   const { toast } = useToast();
@@ -40,37 +36,14 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
 
     setIsCompleting(true);
     try {
-      // Garante que a regra de recorrência não seja perdida se o state local estiver nulo
-      const effectiveRecurrenceRule = recurrenceRule ?? appointment.recurrence_rule ?? null;
-
-      const updates: any = {
-        status: 'Realizado',
-        is_recurring: !!effectiveRecurrenceRule,
-        recurrence_rule: effectiveRecurrenceRule,
-      };
-      
-      await updateAppointment(appointment.id, updates);
-
-      // Chama a Edge Function para processar a recorrência no backend
-      const { error: functionError } = await supabase.functions.invoke('process-appointment-completion', {
-        body: { appointmentId: appointment.id },
+      await updateAppointment(appointment.id, {
+        status: 'Realizado'
       });
 
-      if (functionError) {
-        console.error('Erro ao processar recorrência:', functionError);
-        toast({
-          title: "Aviso",
-          description: "Agendamento concluído, mas houve um erro ao criar o próximo agendamento.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Sucesso",
-          description: effectiveRecurrenceRule 
-            ? "Agendamento concluído e próximo agendamento criado!"
-            : "Agendamento marcado como realizado!"
-        });
-      }
+      toast({
+        title: "Sucesso",
+        description: "Agendamento marcado como realizado!"
+      });
 
       onOpenChange(false);
     } catch (error) {
@@ -193,35 +166,6 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
                 <p className="text-sm text-slate-400 pl-6">
                   {appointment.notes}
                 </p>
-              </div>
-            )}
-
-            {/* Configuração de Recorrência */}
-            {isPending && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowRecurrenceConfig(!showRecurrenceConfig)}
-                    className="border-slate-600 text-slate-300 hover:bg-slate-800"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    {showRecurrenceConfig ? 'Ocultar' : 'Configurar'} Renovação
-                  </Button>
-                  {appointment.recurrence_rule && (
-                    <Badge variant="outline" className="border-blue-600 text-blue-400">
-                      Agendamento Recorrente
-                    </Badge>
-                  )}
-                </div>
-
-                {showRecurrenceConfig && (
-                  <RecurrenceConfig
-                    onRecurrenceChange={setRecurrenceRule}
-                    initialRecurrence={appointment.recurrence_rule}
-                  />
-                )}
               </div>
             )}
 

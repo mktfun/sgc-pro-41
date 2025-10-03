@@ -10,7 +10,7 @@ import { useClients, usePolicies } from '@/hooks/useAppData';
 import { useSupabaseAppointments } from '@/hooks/useSupabaseAppointments';
 import { useCompanyNames } from '@/hooks/useCompanyNames';
 import { useToast } from '@/hooks/use-toast';
-import { RecurrenceConfig } from './RecurrenceConfig';
+
 
 interface AppointmentModalProps {
   initialDate?: Date;
@@ -35,7 +35,6 @@ export function AppointmentModal({
     notes: '',
     priority: 'Normal'
   });
-  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(null);
   
   const {
     addAppointment,
@@ -90,14 +89,12 @@ export function AppointmentModal({
         time: formData.time,
         status: 'Pendente',
         notes: formData.notes.trim() || undefined,
-        priority: formData.priority,
-        is_recurring: !!recurrenceRule,
-        recurrence_rule: recurrenceRule
+        priority: formData.priority
       });
       
       toast({
         title: "Sucesso",
-        description: recurrenceRule ? "Agendamento criado com renovação automática configurada!" : "Agendamento criado com sucesso!"
+        description: "Agendamento criado com sucesso!"
       });
 
       // Limpar formulário e fechar modal
@@ -110,7 +107,6 @@ export function AppointmentModal({
         notes: '',
         priority: 'Normal'
       });
-      setRecurrenceRule(null);
       setModalOpen(false);
     } catch (error) {
       console.error('Erro ao criar agendamento:', error);
@@ -250,8 +246,6 @@ export function AppointmentModal({
               />
             </div>
 
-            <RecurrenceConfig onRecurrenceChange={setRecurrenceRule} initialRecurrence={null} />
-
             <div className="flex justify-end gap-2 pt-4">
               <Button 
                 type="button" 
@@ -370,8 +364,6 @@ export function AppointmentModal({
               rows={3} 
             />
           </div>
-
-          <RecurrenceConfig onRecurrenceChange={setRecurrenceRule} initialRecurrence={null} />
 
           <div className="flex justify-end gap-2 pt-4">
             <Button 
