@@ -5,5 +5,4 @@ verify_jwt = false
 
 [functions.ai-assistant]
 verify_jwt = false
-import_map = "./supabase/functions/import_map.json"
 

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
-import { Redis } from "@upstash/redis";
-import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "https://esm.sh/@upstash/redis@1.31.5";
+import { Ratelimit } from "https://esm.sh/@upstash/ratelimit@1.1.3";
 
 // --- Configuração do Rate Limiter ---
 const redis = new Redis({
