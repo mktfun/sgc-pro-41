@@ -21,6 +21,7 @@ import { ModalNovaTransacao } from '@/components/faturamento/ModalNovaTransacao'
 import { ModalBaixaParcial } from '@/components/faturamento/ModalBaixaParcial';
 import { HistoricoPagamentos } from '@/components/faturamento/HistoricoPagamentos';
 import { FiltrosFaturamento } from '@/components/faturamento/FiltrosFaturamento';
+import { BackfillCommissionsButton } from '@/components/faturamento/BackfillCommissionsButton';
 import { TransactionTableSkeleton } from '@/components/faturamento/TransactionTableSkeleton';
 import { MetricsSkeleton } from '@/components/faturamento/MetricsSkeleton';
 import { useSupabaseTransactionsPaginated } from '@/hooks/useSupabaseTransactionsPaginated';
@@ -117,6 +118,7 @@ export default function Faturamento() {
             <p className="text-slate-400">Acompanhe todas as transações financeiras da corretora</p>
           </div>
           <div className="flex gap-4">
+            <BackfillCommissionsButton />
             <ModalNovaTransacao />
           </div>
         </div>
