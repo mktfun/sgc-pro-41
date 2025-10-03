@@ -5,16 +5,12 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import { DashboardChartsGrid } from './DashboardChartsGrid';
 import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
-import { subDays } from 'date-fns';
 import { AppCard } from '@/components/ui/app-card';
+import { getCurrentMonthRange } from '@/utils/dateUtils';
 
 export function DashboardController() {
   // Estados centralizados - o controlador manda aqui
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 180),
-    // 6 meses atrás
-    to: new Date()
-  });
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getCurrentMonthRange());
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
 
   // Hook com dados filtrados - AGORA PASSA O FILTRO DE DATA

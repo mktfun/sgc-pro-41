@@ -30,18 +30,18 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/types';
 import { DateRange } from 'react-day-picker';
+import { getCurrentMonthRange } from '@/utils/dateUtils';
 
 export default function Faturamento() {
   usePageTitle('Faturamento');
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [selectedCompany, setSelectedCompany] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [historicoModalOpen, setHistoricoModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getCurrentMonthRange());
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const pageSize = 20;
@@ -56,7 +56,6 @@ export default function Faturamento() {
     updateTransaction,
     markAllPendingCommissionsAsPaid
   } = useSupabaseTransactionsPaginated({
-    period: selectedPeriod,
     companyId: selectedCompany,
     page: currentPage,
     pageSize,
@@ -84,9 +83,8 @@ export default function Faturamento() {
     }
   };
 
-  const handleFilterChange = (newPeriod: string, newCompany: string) => {
-    setSelectedPeriod(newPeriod);
-    setSelectedCompany(newCompany);
+  const handleCompanyChange = (company: string) => {
+    setSelectedCompany(company);
     setCurrentPage(1);
   };
 
@@ -124,10 +122,8 @@ export default function Faturamento() {
         </div>
 
         <FiltrosFaturamento
-          selectedPeriod={selectedPeriod}
           selectedCompany={selectedCompany}
-          onPeriodChange={(period) => handleFilterChange(period, selectedCompany)}
-          onCompanyChange={(company) => handleFilterChange(selectedPeriod, company)}
+          onCompanyChange={handleCompanyChange}
           dateRange={dateRange}
           onDateRangeChange={handleDateRangeChange}
         />
@@ -279,8 +275,8 @@ export default function Faturamento() {
               Nenhuma transação encontrada
             </h3>
             <p className="text-slate-400 mb-4">
-              {selectedPeriod !== 'all' || selectedCompany !== 'all' 
-                ? 'Nenhuma transa��ão encontrada para os filtros selecionados.' 
+              {selectedCompany !== 'all' || (dateRange?.from && dateRange?.to)
+                ? 'Nenhuma transação encontrada para os filtros selecionados.' 
                 : 'Comece adicionando sua primeira transação manual.'}
             </p>
             <ModalNovaTransacao />
@@ -411,48 +407,19 @@ export default function Faturamento() {
                                 />
                               </>
                             )}
-                            
-                            {transaction.status === 'PARCIALMENTE_PAGO' && (
-                              <>
-                                <ModalBaixaParcial 
-                                  transaction={transaction} 
-                                  onSuccess={() => {
-                                    toast({
-                                      title: "Sucesso!",
-                                      description: "Pagamento parcial registrado.",
-                                    });
-                                  }} 
-                                />
-                                
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenHistorico(transaction);
-                                  }}
-                                  className="flex items-center gap-2 bg-white/10 border-white/20 text-slate-200 hover:bg-white/20"
-                                >
-                                  <History size={14} />
-                                  Histórico
-                                </Button>
-                              </>
-                            )}
-                            
-                            {transaction.status === 'PAGO' && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenHistorico(transaction);
-                                }}
-                                className="flex items-center gap-2 bg-white/10 border-white/20 text-slate-200 hover:bg-white/20"
-                              >
-                                <History size={14} />
-                                Histórico
-                              </Button>
-                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenHistorico(transaction);
+                              }}
+                              className="flex items-center gap-2 text-slate-400 hover:text-white"
+                            >
+                              <History size={14} />
+                              Histórico
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -464,27 +431,37 @@ export default function Faturamento() {
           </div>
         )}
 
-        {!loading && totalPages > 1 && (
-          <div className="flex justify-center mt-6">
+        {totalPages > 1 && (
+          <div className="mt-6 flex justify-center">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious 
-                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                   />
                 </PaginationItem>
                 
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNumber = i + 1;
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
                   return (
-                    <PaginationItem key={pageNumber}>
+                    <PaginationItem key={pageNum}>
                       <PaginationLink
-                        onClick={() => setCurrentPage(pageNumber)}
-                        isActive={currentPage === pageNumber}
+                        onClick={() => setCurrentPage(pageNum)}
+                        isActive={currentPage === pageNum}
                         className="cursor-pointer"
                       >
-                        {pageNumber}
+                        {pageNum}
                       </PaginationLink>
                     </PaginationItem>
                   );
@@ -492,7 +469,7 @@ export default function Faturamento() {
                 
                 <PaginationItem>
                   <PaginationNext 
-                    onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                   />
                 </PaginationItem>
@@ -502,10 +479,10 @@ export default function Faturamento() {
         )}
 
         {selectedTransaction && (
-          <HistoricoPagamentos 
-            transaction={selectedTransaction} 
-            isOpen={historicoModalOpen} 
-            onClose={handleCloseHistorico} 
+          <HistoricoPagamentos
+            isOpen={historicoModalOpen}
+            onClose={handleCloseHistorico}
+            transaction={selectedTransaction}
           />
         )}
       </div>

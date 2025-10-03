@@ -4,8 +4,7 @@ import { useAuth } from './useAuth';
 import { Transaction } from '@/types';
 import { DateRange } from 'react-day-picker';
 
-interface TransactionFilters {
-  period: string;
+export interface TransactionFilters {
   companyId: string;
   page: number;
   pageSize: number;
@@ -48,39 +47,11 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      // 📅 FILTRO POR PERÍODO OU INTERVALO PERSONALIZADO NO BACKEND
+      // 📅 FILTRO POR INTERVALO PERSONALIZADO NO BACKEND
       if (filters.dateRange?.from && filters.dateRange?.to) {
         const from = filters.dateRange.from.toISOString().split('T')[0];
         const to = filters.dateRange.to.toISOString().split('T')[0];
         query = query.gte('date', from).lte('date', to);
-      } else if (filters.period !== 'all') {
-        const now = new Date();
-        let startDate: Date | undefined;
-
-        switch (filters.period) {
-          case 'current-month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            break;
-          case 'last-month':
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            query = query.gte('date', lastMonth.toISOString().split('T')[0])
-                         .lte('date', endLastMonth.toISOString().split('T')[0]);
-            break;
-          case 'current-year':
-            startDate = new Date(now.getFullYear(), 0, 1);
-            break;
-          case 'last-year':
-            startDate = new Date(now.getFullYear() - 1, 0, 1);
-            const endLastYear = new Date(now.getFullYear() - 1, 11, 31);
-            query = query.gte('date', startDate.toISOString().split('T')[0])
-                         .lte('date', endLastYear.toISOString().split('T')[0]);
-            break;
-        }
-
-        if (filters.period === 'current-month' || filters.period === 'current-year') {
-          query = query.gte('date', startDate!.toISOString().split('T')[0]);
-        }
       }
 
       // 🏢 FILTRO POR SEGURADORA NO BACKEND
@@ -129,37 +100,11 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         .select('amount, status, nature')
         .eq('user_id', user.id);
 
-      // Aplicar os mesmos filtros de período/intervalo e empresa nas métricas
+      // Aplicar os mesmos filtros de intervalo e empresa nas métricas
       if (filters.dateRange?.from && filters.dateRange?.to) {
         const from = filters.dateRange.from.toISOString().split('T')[0];
         const to = filters.dateRange.to.toISOString().split('T')[0];
         metricsQuery = metricsQuery.gte('date', from).lte('date', to);
-      } else if (filters.period !== 'all') {
-        const now = new Date();
-        let startDate: Date | undefined;
-
-        switch (filters.period) {
-          case 'current-month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            metricsQuery = metricsQuery.gte('date', startDate.toISOString().split('T')[0]);
-            break;
-          case 'last-month':
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const endLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-            metricsQuery = metricsQuery.gte('date', lastMonth.toISOString().split('T')[0])
-                                      .lte('date', endLastMonth.toISOString().split('T')[0]);
-            break;
-          case 'current-year':
-            startDate = new Date(now.getFullYear(), 0, 1);
-            metricsQuery = metricsQuery.gte('date', startDate.toISOString().split('T')[0]);
-            break;
-          case 'last-year':
-            startDate = new Date(now.getFullYear() - 1, 0, 1);
-            const endLastYear = new Date(now.getFullYear() - 1, 11, 31);
-            metricsQuery = metricsQuery.gte('date', startDate.toISOString().split('T')[0])
-                                      .lte('date', endLastYear.toISOString().split('T')[0]);
-            break;
-        }
       }
 
       // 🔧 FILTRO DE NATURE - Resiliência para RECEITA/DESPESA e GANHO/PERDA
@@ -263,28 +208,6 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
       const from = filters.dateRange.from.toISOString().split('T')[0];
       const to = filters.dateRange.to.toISOString().split('T')[0];
       updateQuery = updateQuery.gte('date', from).lte('date', to);
-    } else if (filters.period !== 'all') {
-      const now = new Date();
-      let startDate: Date | undefined;
-      let endDate: Date | undefined;
-      switch (filters.period) {
-        case 'current-month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case 'last-month':
-          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-          break;
-        case 'current-year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        case 'last-year':
-          startDate = new Date(now.getFullYear() - 1, 0, 1);
-          endDate = new Date(now.getFullYear() - 1, 11, 31);
-          break;
-      }
-      if (startDate) updateQuery = updateQuery.gte('date', startDate.toISOString().split('T')[0]);
-      if (endDate) updateQuery = updateQuery.lte('date', endDate.toISOString().split('T')[0]);
     }
 
     if (filters.companyId !== 'all') {
