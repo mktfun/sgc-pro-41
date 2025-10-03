@@ -372,7 +372,7 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     filteredPolicies
       .filter(policy => policy.status === 'Ativa')
       .forEach(policy => {
-        const branch = policy.type || 'Não informado';
+        const branch = (policy as any).ramos?.nome || policy.type || 'Não informado';
         const value = policy.premiumValue || 0;
         const commission = calculateCommissionValue(value, policy.type || '');
 
