@@ -71,11 +71,23 @@ serve(async (req) => {
       );
     }
 
-    // 4. Calcula a próxima data usando rrule
-    const startDateTime = new Date(`${completedAppointment.date}T${completedAppointment.time}Z`);
-    console.log('[create-next-appointment] Data/hora base:', startDateTime.toISOString());
-    
-    const nextDate = rule.after(startDateTime, false);
+    // 4. Calcula a próxima data usando rrule com base na data ORIGINAL da série
+    const baseDateTime = completedAppointment.original_start_timestamptz 
+      ? new Date(completedAppointment.original_start_timestamptz)
+      : new Date(`${completedAppointment.date}T${completedAppointment.time}Z`);
+
+    const completedDateTime = new Date(`${completedAppointment.date}T${completedAppointment.time}Z`);
+
+    console.log('[create-next-appointment] Data/hora original da série:', baseDateTime.toISOString());
+    console.log('[create-next-appointment] Data/hora do agendamento concluído:', completedDateTime.toISOString());
+
+    // Criar RRule com dtstart baseado na data original
+    const ruleOptions = RRule.parseString(completedAppointment.recurrence_rule);
+    ruleOptions.dtstart = baseDateTime;
+    const ruleWithStart = new RRule(ruleOptions);
+
+    // Calcular próxima ocorrência APÓS a data do agendamento concluído
+    const nextDate = ruleWithStart.after(completedDateTime, false);
 
     if (!nextDate) {
       console.log('[create-next-appointment] Fim da série de recorrência');
@@ -88,6 +100,7 @@ serve(async (req) => {
     }
 
     console.log('[create-next-appointment] Próxima data calculada:', nextDate.toISOString());
+    console.log('[create-next-appointment] Diferença em dias:', Math.floor((nextDate.getTime() - completedDateTime.getTime()) / (1000 * 60 * 60 * 24)));
 
     // 5. Prepara os dados do novo agendamento
     const newAppointmentData = {
