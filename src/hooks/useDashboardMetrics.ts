@@ -139,8 +139,8 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     const comissaoTotal = filteredTransactions
       .filter(t => {
         const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
-        const isReceita = t.nature === 'RECEITA';
-        return isRealizado && isReceita;
+        const isGanho = t.nature === 'GANHO';
+        return isRealizado && isGanho;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -156,9 +156,9 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
       .filter(t => {
         const isLastMonth = isInMonth(t.date, -1);
         const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
-        const isReceita = t.nature === 'RECEITA';
+        const isGanho = t.nature === 'GANHO';
         
-        return isLastMonth && isRealizado && isReceita;
+        return isLastMonth && isRealizado && isGanho;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -252,9 +252,9 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
           const sameMonth = transactionDate.getMonth() === month.getMonth();
           const sameYear = transactionDate.getFullYear() === month.getFullYear();
           const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
-          const isReceita = t.nature === 'RECEITA';
+          const isGanho = t.nature === 'GANHO';
           
-          return sameMonth && sameYear && isRealizado && isReceita;
+          return sameMonth && sameYear && isRealizado && isGanho;
         })
         .reduce((sum, t) => sum + t.amount, 0);
 

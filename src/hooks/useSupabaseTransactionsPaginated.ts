@@ -185,15 +185,15 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         const amount = typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount;
         
         if (transaction.status === 'REALIZADO' || transaction.status === 'PAGO') {
-          if (transaction.nature === 'RECEITA') {
+          if (transaction.nature === 'GANHO') {
             totalGanhos += amount;
-          } else if (transaction.nature === 'DESPESA') {
+          } else if (transaction.nature === 'PERDA') {
             totalPerdas += amount;
           }
         } else if (transaction.status === 'PREVISTO' || transaction.status === 'PENDENTE' || transaction.status === 'PARCIALMENTE_PAGO') {
-          if (transaction.nature === 'RECEITA') {
+          if (transaction.nature === 'GANHO') {
             totalPrevisto += amount;
-          } else if (transaction.nature === 'DESPESA') {
+          } else if (transaction.nature === 'PERDA') {
             totalPrevisto -= amount;
           }
         }
@@ -247,7 +247,7 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
       .update({ status: 'PAGO' })
       .eq('user_id', user.id)
       .eq('status', 'PENDENTE')
-      .eq('nature', 'RECEITA')
+      .eq('nature', 'GANHO')
       .not('policy_id', 'is', null);
 
     if (filters.dateRange?.from && filters.dateRange?.to) {

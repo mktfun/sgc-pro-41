@@ -23,12 +23,12 @@ export function RelatorioFaturamento({
   // Cálculos dos KPIs financeiros
   const totalFaturado = apolices.reduce((sum, p) => sum + (p.premiumValue || 0), 0);
 
-  // Definir "verdade" de comissões como transações de receita de comissão (realizadas)
+  // Definir "verdade" de comissões como transações de ganho de comissão (realizadas)
   const isCommissionTx = (t: Transaction) => {
     const desc = (t.description || '').toLowerCase();
-    const isReceita = t.nature === 'RECEITA';
+    const isGanho = t.nature === 'GANHO';
     const isCommissionLike = desc.includes('comiss') || !!t.policyId; // marcações de comissão
-    return isReceita && isCommissionLike;
+    return isGanho && isCommissionLike;
   };
 
   // Aplicar filtro de período quando existir (usa transactionDate se disponível)

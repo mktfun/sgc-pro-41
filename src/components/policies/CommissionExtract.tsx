@@ -21,7 +21,7 @@ export function CommissionExtract({ policy }: CommissionExtractProps) {
   useEffect(() => {
     const policyCommissions = transactions.filter(t => 
       t.policyId === policy.id && 
-      t.nature === 'RECEITA'
+      t.nature === 'GANHO'
     );
     setCommissionTransactions(policyCommissions);
   }, [transactions, policy.id]);

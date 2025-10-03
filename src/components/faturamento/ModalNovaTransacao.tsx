@@ -51,7 +51,7 @@ export function ModalNovaTransacao() {
       status: 'REALIZADO',
       date: formData.date,
       // 🆕 NOVOS CAMPOS OBRIGATÓRIOS
-      nature: 'RECEITA', // Valor padrão, pode ser determinado pelo tipo de transação
+      nature: 'GANHO', // Valor padrão, pode ser determinado pelo tipo de transação
       transactionDate: formData.date,
       dueDate: formData.date,
       ...(formData.clientId && { clientId: formData.clientId }),

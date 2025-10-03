@@ -134,7 +134,8 @@ export async function gerarTransacaoDeComissao(policy: Policy) {
       transaction_date: new Date().toISOString().split('T')[0],
       due_date: policy.expirationDate,
       status: 'PENDENTE',
-      nature: 'RECEITA',
+      nature: 'GANHO',
+      company_id: policy.insuranceCompany,
       brokerage_id: policy.brokerageId,
       producer_id: policy.producerId
     })

@@ -106,10 +106,10 @@ export function useFilteredTransactions(period: string, companyId: string) {
       console.log(`  - Valor: ${transaction.amount}`);
       console.log(`  - Status: ${transaction.status}`);
       
-      if (transaction.nature === 'RECEITA') {
+      if (transaction.nature === 'GANHO') {
         totalGanhos += transaction.amount;
         console.log(`➕ Adicionado aos ganhos: ${transaction.amount}, Total ganhos: ${totalGanhos}`);
-      } else if (transaction.nature === 'DESPESA') {
+      } else if (transaction.nature === 'PERDA') {
         totalPerdas += transaction.amount;
         console.log(`➖ Adicionado às perdas: ${transaction.amount}, Total perdas: ${totalPerdas}`);
       }
@@ -125,10 +125,10 @@ export function useFilteredTransactions(period: string, companyId: string) {
       console.log(`  - Valor: ${transaction.amount}`);
       console.log(`  - Status: ${transaction.status}`);
       
-      if (transaction.nature === 'RECEITA') {
+      if (transaction.nature === 'GANHO') {
         totalPrevisto += transaction.amount;
         console.log(`➕ Somando ao previsto: ${transaction.amount}, Total previsto: ${totalPrevisto}`);
-      } else if (transaction.nature === 'DESPESA') {
+      } else if (transaction.nature === 'PERDA') {
         totalPrevisto -= transaction.amount;
         console.log(`➖ Subtraindo do previsto: ${transaction.amount}, Total previsto: ${totalPrevisto}`);
       }
