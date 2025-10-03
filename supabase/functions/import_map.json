@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "https://deno.land/std@0.168.0/http/server.ts": "https://deno.land/std@0.168.0/http/server.ts",
+    "https://esm.sh/@supabase/supabase-js@2.56.0": "https://esm.sh/@supabase/supabase-js@2.56.0",
+    "@upstash/redis": "https://esm.sh/@upstash/redis@1.31.5",
+    "@upstash/ratelimit": "https://esm.sh/@upstash/ratelimit@1.1.3"
+  }
+}

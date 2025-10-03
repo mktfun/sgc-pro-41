@@ -1,5 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.56.0";
+import { Redis } from "@upstash/redis";
+import { Ratelimit } from "@upstash/ratelimit";
+
+// --- Configuração do Rate Limiter ---
+const redis = new Redis({
+  url: Deno.env.get('UPSTASH_REDIS_REST_URL')!,
+  token: Deno.env.get('UPSTASH_REDIS_REST_TOKEN')!,
+});
+
+const ratelimit = new Ratelimit({
+  redis: redis,
+  limiter: Ratelimit.slidingWindow(10, "15 s"), // 10 requisições a cada 15 segundos
+  analytics: true,
+  prefix: "@upstash/ratelimit",
+});
+// ------------------------------------
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -388,6 +404,22 @@ serve(async (req) => {
 
   try {
     const { messages, userId } = await req.json();
+
+    // --- LÓGICA DE RATE LIMITING ---
+    const identifier = userId || req.headers.get("x-forwarded-for") || 'anon';
+    const { success } = await ratelimit.limit(identifier);
+
+    if (!success) {
+      console.log(`Rate limit exceeded for: ${identifier}`);
+      return new Response(JSON.stringify({ 
+        error: "Limite de requisições excedido. Tente novamente em alguns segundos." 
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    console.log(`Rate limit OK for: ${identifier}`);
+    // ---------------------------------
 
     if (!userId) {
       throw new Error('userId é obrigatório');
