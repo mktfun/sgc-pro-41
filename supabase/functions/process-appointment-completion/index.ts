@@ -9,51 +9,49 @@ const corsHeaders = {
 interface RecurrenceCalculation {
   nextDate: Date;
   nextTime: string;
+  interval: number;
+  freq: string;
+}
+
+function intervalOrDefault(rule: string, def: number): number {
+  const match = rule.match(/INTERVAL=(\d+)/);
+  return match ? parseInt(match[1]) : def;
 }
 
 function calculateNextDate(currentDate: string, currentTime: string, rule: string): RecurrenceCalculation {
-  const baseDate = new Date(`${currentDate}T${currentTime}`);
+  const baseDate = new Date(`${currentDate}T${currentTime}Z`);
   let nextDate: Date;
-
-  console.log('Calculando próxima data. Regra recebida:', rule);
-
-  // Suporta formato RRULE completo (FREQ=MONTHLY;INTERVAL=1) e formato legado simplificado (monthly)
   const normalizedRule = rule.toUpperCase();
-  
+  const interval = intervalOrDefault(rule, 1);
+  let freq = 'YEARLY';
+
   if (normalizedRule.includes('FREQ=DAILY') || normalizedRule === 'DAILY') {
-    const interval = rule.match(/INTERVAL=(\d+)/);
-    const days = interval ? parseInt(interval[1]) : 1;
-    nextDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
-    console.log(`Calculando DAILY com intervalo ${days} dias`);
+    freq = 'DAILY';
+    nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() + interval);
   } else if (normalizedRule.includes('FREQ=WEEKLY') || normalizedRule === 'WEEKLY') {
-    const interval = rule.match(/INTERVAL=(\d+)/);
-    const weeks = interval ? parseInt(interval[1]) : 1;
-    nextDate = new Date(baseDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
-    console.log(`Calculando WEEKLY com intervalo ${weeks} semanas`);
+    freq = 'WEEKLY';
+    nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() + interval * 7);
   } else if (normalizedRule.includes('FREQ=MONTHLY') || normalizedRule === 'MONTHLY') {
-    const interval = rule.match(/INTERVAL=(\d+)/);
-    const months = interval ? parseInt(interval[1]) : 1;
+    freq = 'MONTHLY';
     nextDate = new Date(baseDate);
-    nextDate.setMonth(nextDate.getMonth() + months);
-    console.log(`Calculando MONTHLY com intervalo ${months} meses`);
+    nextDate.setMonth(nextDate.getMonth() + interval);
   } else if (normalizedRule.includes('FREQ=YEARLY') || normalizedRule === 'YEARLY') {
-    const interval = rule.match(/INTERVAL=(\d+)/);
-    const years = interval ? parseInt(interval[1]) : 1;
+    freq = 'YEARLY';
     nextDate = new Date(baseDate);
-    nextDate.setFullYear(nextDate.getFullYear() + years);
-    console.log(`Calculando YEARLY com intervalo ${years} anos`);
+    nextDate.setFullYear(nextDate.getFullYear() + interval);
   } else {
-    // Fallback: assume anual se não reconhecer
+    // fallback
     nextDate = new Date(baseDate);
     nextDate.setFullYear(nextDate.getFullYear() + 1);
-    console.log('Regra não reconhecida, usando fallback anual');
   }
-
-  console.log('Próxima data calculada:', nextDate.toISOString().split('T')[0]);
 
   return {
     nextDate,
-    nextTime: currentTime
+    nextTime: currentTime,
+    interval,
+    freq
   };
 }
 
@@ -94,11 +92,7 @@ serve(async (req) => {
       throw new Error(`Agendamento não encontrado: ${fetchError.message}`)
     }
 
-    console.log('Agendamento encontrado:', {
-      id: completedAppointment.id,
-      is_recurring: completedAppointment.is_recurring,
-      recurrence_rule: completedAppointment.recurrence_rule
-    })
+    console.log(`Agendamento encontrado: ${completedAppointment.id}, Regra de Recorrência: ${completedAppointment.recurrence_rule}`)
 
     // 2. Verificar se é recorrente
     if (!completedAppointment.recurrence_rule) {
@@ -116,16 +110,21 @@ serve(async (req) => {
     }
 
     // 3. Calcular próxima data
-    const { nextDate, nextTime } = calculateNextDate(
+    const { nextDate, nextTime, interval, freq } = calculateNextDate(
       completedAppointment.date,
       completedAppointment.time,
       completedAppointment.recurrence_rule
     )
 
-    console.log('Próxima data calculada:', {
-      date: nextDate.toISOString().split('T')[0],
-      time: nextTime
-    })
+    if (!nextDate) {
+      console.error('Não foi possível calcular a próxima data para o agendamento:', completedAppointment.id)
+      return new Response(
+        JSON.stringify({ success: false, message: 'Erro ao calcular próxima data.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Calculando próximo agendamento: Frequência=${freq}, Intervalo=${interval}, Próxima Data=${nextDate.toISOString().split('T')[0]}`)
 
     // 4. Criar novo agendamento
     const newAppointmentData = {
@@ -149,12 +148,12 @@ serve(async (req) => {
       .select('id')
       .single()
 
-    if (insertError) {
+    if (insertError || !newAppointment) {
       console.error('Erro ao criar próximo agendamento:', insertError)
-      throw new Error(`Erro ao criar próximo agendamento: ${insertError.message}`)
+      throw new Error(`Erro ao criar próximo agendamento: ${insertError?.message}`)
     }
 
-    console.log('Próximo agendamento criado com sucesso:', newAppointment.id)
+    console.log(`Próximo agendamento criado com sucesso: ID=${newAppointment.id}`)
 
     return new Response(
       JSON.stringify({ 

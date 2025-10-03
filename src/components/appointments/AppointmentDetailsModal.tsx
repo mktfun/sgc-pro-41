@@ -40,11 +40,16 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
 
     setIsCompleting(true);
     try {
-      // Atualiza o status do agendamento
-      await updateAppointment(appointment.id, {
+      // Garante que a regra de recorrência não seja perdida se o state local estiver nulo
+      const effectiveRecurrenceRule = recurrenceRule ?? appointment.recurrence_rule ?? null;
+
+      const updates: any = {
         status: 'Realizado',
-        recurrence_rule: recurrenceRule
-      });
+        is_recurring: !!effectiveRecurrenceRule,
+        recurrence_rule: effectiveRecurrenceRule,
+      };
+      
+      await updateAppointment(appointment.id, updates);
 
       // Chama a Edge Function para processar a recorrência no backend
       const { error: functionError } = await supabase.functions.invoke('process-appointment-completion', {
@@ -61,7 +66,7 @@ export function AppointmentDetailsModal({ appointment, open, onOpenChange }: App
       } else {
         toast({
           title: "Sucesso",
-          description: recurrenceRule 
+          description: effectiveRecurrenceRule 
             ? "Agendamento concluído e próximo agendamento criado!"
             : "Agendamento marcado como realizado!"
         });
