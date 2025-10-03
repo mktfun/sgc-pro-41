@@ -86,7 +86,7 @@ async function generateCommissionTransaction(supabaseClient: any, policy: Policy
       date: policy.start_date || new Date().toISOString().split('T')[0],
       transaction_date: policy.start_date || new Date().toISOString().split('T')[0],
       due_date: policy.expiration_date,
-      description: `Comissão (Retroativa) Apólice ${policy.policy_number}`,
+      description: `Comissão - Apólice ${policy.policy_number}`,
       type_id: commissionTypeId,
       nature: 'RECEITA', // 🔧 CORRIGIDO: usar RECEITA para respeitar o CHECK constraint
       status: 'PENDENTE',
