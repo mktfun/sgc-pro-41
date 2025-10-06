@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, Check, ExternalLink, History, Link2 } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Calendar, Check, ExternalLink, History, Link as LinkIcon } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -123,7 +123,7 @@ export default function Faturamento() {
               variant="outline"
               className="bg-white/10 border-white/20 text-slate-200 hover:bg-white/20"
             >
-              <Link2 className="w-4 h-4 mr-2" />
+              <LinkIcon className="w-4 h-4 mr-2" />
               Vincular Transações Manualmente
             </Button>
             <BackfillCommissionsButton />

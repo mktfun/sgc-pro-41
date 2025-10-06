@@ -7,7 +7,7 @@ import { useOrphanTransactions, useBatchUpdateTransactions } from '@/hooks/useSu
 import { useSupabaseRamos } from '@/hooks/useSupabaseRamos';
 import { useSupabaseCompanies } from '@/hooks/useSupabaseCompanies';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Link2, AlertCircle } from 'lucide-react';
+import { Loader2, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EnrichTransactionsModalProps {
@@ -86,7 +86,7 @@ export function EnrichTransactionsModal({ isOpen, onClose }: EnrichTransactionsM
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="w-5 h-5" />
+            <LinkIcon className="w-5 h-5" />
             Vincular Transações Pendentes Manualmente
           </DialogTitle>
         </DialogHeader>
