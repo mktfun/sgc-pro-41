@@ -30,6 +30,22 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
     temFiltrosAtivos
   } = useSupabaseReports(filtros);
 
+  // 🛡️ GUARD: Verificar se TODOS os dados críticos estão prontos
+  const isDataReady = Boolean(
+    ramosDisponiveis && ramosDisponiveis.length > 0 &&
+    seguradoras && seguradoras.length > 0 &&
+    produtores && produtores.length > 0
+  );
+
+  console.log('🔍 [useFilteredDataForReports] Estado dos dados:', {
+    transacoes: transacoesFiltradas?.length || 0,
+    ramos: ramosDisponiveis?.length || 0,
+    seguradoras: seguradoras?.length || 0,
+    produtores: produtores?.length || 0,
+    isDataReady,
+    isLoading
+  });
+
   // 📊 DADOS CALCULADOS: Manter apenas a formatação para os gráficos
   const dadosEvolucaoCarteira = useMemo(() => {
     if (!filtros.intervalo?.from || !filtros.intervalo?.to || !apolicesFiltradas.length) {
@@ -93,6 +109,12 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
   }, [apolicesFiltradas, filtros.intervalo]);
 
   const dadosPerformanceProdutor = useMemo(() => {
+    // 🛡️ GUARD CLAUSE ROBUSTA
+    if (!produtores || produtores.length === 0 || !transacoesFiltradas || !apolicesFiltradas) {
+      console.warn('⚠️ [dadosPerformanceProdutor] Aguardando dados completos');
+      return { data: [], insight: 'Carregando dados de performance...' };
+    }
+
     const performanceMap = new Map<string, { produtorId: string; nome: string; totalApolices: number; valorTotal: number; comissaoTotal: number; ticketMedio: number }>();
 
     produtores.forEach(producer => {
@@ -269,7 +291,11 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
 
   // 📊 DISTRIBUIÇÃO POR RAMOS (baseada em transações pagas)
   const branchDistributionDataFromTransactions = useMemo(() => {
-    if (!transacoesFiltradas) return [];
+    // 🛡️ GUARD CLAUSE ROBUSTA
+    if (!transacoesFiltradas || !ramosDisponiveis || ramosDisponiveis.length === 0) {
+      console.warn('⚠️ [branchDistribution] Aguardando dados: transações ou ramos');
+      return [];
+    }
     
     // Filtrar apenas transações de receita pagas
     const filteredTransactions = transacoesFiltradas.filter(t => 
@@ -334,7 +360,11 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
 
   // 📊 DISTRIBUIÇÃO POR SEGURADORAS (baseada em transações pagas)
   const companyDistributionDataFromTransactions = useMemo(() => {
-    if (!transacoesFiltradas) return [];
+    // 🛡️ GUARD CLAUSE ROBUSTA
+    if (!transacoesFiltradas || !seguradoras || seguradoras.length === 0) {
+      console.warn('⚠️ [companyDistribution] Aguardando dados: transações ou seguradoras');
+      return [];
+    }
     
     // Filtrar apenas transações de receita pagas
     const filteredTransactions = transacoesFiltradas.filter(t => 
@@ -423,6 +453,6 @@ export function useFilteredDataForReports(filtros: FiltrosGlobais) {
     saldoLiquido,
     temFiltrosAtivos,
     temDados,
-    isLoading // ✅ LOADING REAL do Supabase
+    isLoading: isLoading || !isDataReady // 🛡️ Loading completo: considera dados críticos
   };
 }
