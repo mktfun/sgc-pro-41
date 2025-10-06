@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseRamos } from '@/hooks/useSupabaseRamos';
-import { usePolicies } from '@/hooks/useAppData';
+import { useSupabaseCompanies } from '@/hooks/useSupabaseCompanies';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Pencil } from 'lucide-react';
 import { Transaction } from '@/types';
@@ -26,7 +26,8 @@ export function EditTransactionModal({
 }: EditTransactionModalProps) {
   const { toast } = useToast();
   const [ramoId, setRamoId] = useState<string>('');
-  const [policyId, setPolicyId] = useState<string>('');
+  const [companyId, setCompanyId] = useState<string>('');
+  const [status, setStatus] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Buscar dados da transação específica
@@ -53,13 +54,14 @@ export function EditTransactionModal({
 
   // Buscar listas para os dropdowns
   const { data: ramos = [] } = useSupabaseRamos();
-  const { policies } = usePolicies();
+  const { companies } = useSupabaseCompanies();
 
   // Preencher o formulário quando os dados da transação chegam
   useEffect(() => {
     if (transaction) {
       setRamoId(transaction.ramo_id || '');
-      setPolicyId(transaction.policy_id || '');
+      setCompanyId(transaction.company_id || '');
+      setStatus(transaction.status || 'PENDENTE');
     }
   }, [transaction]);
 
@@ -67,7 +69,8 @@ export function EditTransactionModal({
   useEffect(() => {
     if (!isOpen) {
       setRamoId('');
-      setPolicyId('');
+      setCompanyId('');
+      setStatus('');
     }
   }, [isOpen]);
 
@@ -79,7 +82,8 @@ export function EditTransactionModal({
 
       const updates: any = {
         ramo_id: ramoId || null,
-        policy_id: policyId || null,
+        company_id: companyId || null,
+        status: status,
       };
 
       const { error } = await supabase
@@ -173,25 +177,40 @@ export function EditTransactionModal({
                 </Select>
               </div>
 
-              {/* Select Apólice */}
+              {/* Select Seguradora */}
               <div>
                 <Label className="text-sm text-slate-300 mb-2 block">
-                  Apólice <span className="text-slate-500">(opcional)</span>
+                  Seguradora <span className="text-slate-500">(opcional)</span>
                 </Label>
-                <Select value={policyId} onValueChange={setPolicyId}>
+                <Select value={companyId} onValueChange={setCompanyId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma apólice" />
+                    <SelectValue placeholder="Selecione uma seguradora" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {policies
-                      .filter(p => p.status === 'Ativa' || p.status === 'Aguardando Apólice')
-                      .map(policy => (
-                        <SelectItem key={policy.id} value={policy.id}>
-                          {policy.policyNumber 
-                            ? `Apólice #${policy.policyNumber}` 
-                            : `Orçamento #${policy.id.slice(0, 8)}`}
-                        </SelectItem>
-                      ))}
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Select Status */}
+              <div>
+                <Label className="text-sm text-slate-300 mb-2 block">
+                  Status
+                </Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDENTE">Pendente</SelectItem>
+                    <SelectItem value="PAGO">Pago</SelectItem>
+                    <SelectItem value="PARCIALMENTE_PAGO">Parcialmente Pago</SelectItem>
+                    <SelectItem value="ATRASADO">Atrasado</SelectItem>
+                    <SelectItem value="CANCELADO">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
