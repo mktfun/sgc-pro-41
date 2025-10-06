@@ -45,7 +45,7 @@ export function TransactionModal({ isOpen, onClose, onSubmit }: TransactionModal
       status: 'REALIZADO',
       date: formData.date,
       // 🆕 NOVOS CAMPOS OBRIGATÓRIOS
-      nature: 'GANHO', // Valor padrão, pode ser ajustado conforme necessário
+      nature: 'RECEITA', // Valor padrão, pode ser ajustado conforme necessário
       transactionDate: formData.date,
       dueDate: formData.date,
     });

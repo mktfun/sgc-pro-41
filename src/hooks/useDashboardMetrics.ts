@@ -156,9 +156,9 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
       .filter(t => {
         const isLastMonth = isInMonth(t.date, -1);
         const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
-        const isGanho = t.nature === 'GANHO';
+        const isReceita = t.nature === 'RECEITA';
         
-        return isLastMonth && isRealizado && isGanho;
+        return isLastMonth && isRealizado && isReceita;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -252,9 +252,9 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
           const sameMonth = transactionDate.getMonth() === month.getMonth();
           const sameYear = transactionDate.getFullYear() === month.getFullYear();
           const isRealizado = t.status === 'REALIZADO' || t.status === 'PAGO';
-          const isGanho = t.nature === 'GANHO';
+          const isReceita = t.nature === 'RECEITA';
           
-          return sameMonth && sameYear && isRealizado && isGanho;
+          return sameMonth && sameYear && isRealizado && isReceita;
         })
         .reduce((sum, t) => sum + t.amount, 0);
 

@@ -80,7 +80,7 @@ export function PerformanceChart() {
 
     // Processar comissões das transações
     transacoesFiltradas.forEach(t => {
-      if (t.nature !== 'GANHO') return; // Só ganhos contam como comissão
+      if (t.nature !== 'RECEITA') return; // Só receitas contam como comissão
       
       const chave = format(new Date(t.date), formatoChave);
       const nomeAmigavel = format(new Date(t.date), formatoNome);

@@ -108,7 +108,7 @@ export interface Transaction {
   date: string;
   
   // 🆕 CAMPOS DO MÓDULO FINANCEIRO
-  nature: 'GANHO' | 'PERDA'; // Natureza da transação (alinhado com transaction_types)
+  nature: 'RECEITA' | 'DESPESA'; // Natureza da transação (alinhado com transaction_types no DB)
   transactionDate: string; // Data da transação financeira
   dueDate: string; // Data de vencimento
   

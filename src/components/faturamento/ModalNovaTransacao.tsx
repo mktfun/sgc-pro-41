@@ -67,13 +67,24 @@ export function ModalNovaTransacao() {
       return;
     }
 
+    // Buscar o tipo de transação selecionado
+    const selectedType = transactionTypes.find(t => t.id === formData.typeId);
+    
+    if (!selectedType) {
+      alert('Tipo de transação inválido');
+      return;
+    }
+
+    // Mapear corretamente a nature: GANHO → RECEITA, PERDA → DESPESA
+    const nature = selectedType.nature === 'GANHO' ? 'RECEITA' : 'DESPESA';
+
     const transactionData: Omit<Transaction, 'id' | 'createdAt'> = {
       typeId: formData.typeId,
       description: formData.description,
       amount: formData.amount,
       status: 'REALIZADO',
       date: formData.date,
-      nature: 'GANHO',
+      nature: nature,
       transactionDate: formData.date,
       dueDate: formData.date,
       ...(formData.clientId && { clientId: formData.clientId }),

@@ -26,9 +26,9 @@ export function RelatorioFaturamento({
   // Definir "verdade" de comissões como transações de ganho de comissão (realizadas)
   const isCommissionTx = (t: Transaction) => {
     const desc = (t.description || '').toLowerCase();
-    const isGanho = t.nature === 'GANHO';
+    const isReceita = t.nature === 'RECEITA';
     const isCommissionLike = desc.includes('comiss') || !!t.policyId; // marcações de comissão
-    return isGanho && isCommissionLike;
+    return isReceita && isCommissionLike;
   };
 
   // Aplicar filtro de período quando existir (usa transactionDate se disponível)
