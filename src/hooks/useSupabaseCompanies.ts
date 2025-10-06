@@ -39,8 +39,7 @@ export function useSupabaseCompanies() {
       return formattedCompanies;
     },
     enabled: !!user,
-    // 🚀 **OTIMIZAÇÃO DE PERFORMANCE** - Seguradoras não mudam muito
-    staleTime: 15 * 60 * 1000, // 15 minutos
+    staleTime: 0, // ⚡️ FORÇA A REVALIDAÇÃO EM CADA VISITA
   });
 
   // 🎯 **MUTATIONS COM INVALIDAÇÃO AUTOMÁTICA**

@@ -33,6 +33,7 @@ export function useSupabaseRamos() {
       return data as Ramo[];
     },
     enabled: !!user,
+    staleTime: 0, // ⚡️ FORÇA A REVALIDAÇÃO EM CADA VISITA
   });
 }
 

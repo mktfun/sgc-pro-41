@@ -54,8 +54,7 @@ export function useSupabaseTransactions() {
       return formattedTransactions;
     },
     enabled: !!user,
-    // 🚀 **ETAPA 2: OTIMIZAÇÃO DE PERFORMANCE** - Adicionando staleTime
-    staleTime: 2 * 60 * 1000, // 2 minutos - dados financeiros precisam ser mais frescos
+    staleTime: 0, // ⚡️ FORÇA A REVALIDAÇÃO EM CADA VISITA
   });
 
   // 🚀 **ETAPA 1: MUTATIONS COM INVALIDAÇÃO AUTOMÁTICA**
