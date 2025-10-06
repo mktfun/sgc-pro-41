@@ -328,6 +328,35 @@ export function useSupabaseTransactions() {
   // ✅ FUNÇÃO ATUALIZADA PARA CRIAR TRANSAÇÃO ÚNICA DE COMISSÃO COM INVALIDAÇÃO
   
 
+  // 🆕 NOVA MUTATION PARA VINCULAR TRANSAÇÕES AOS RAMOS
+  const linkTransactionsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data, error } = await supabase.rpc('link_manual_transactions', {
+        p_user_id: user.id
+      });
+
+      if (error) {
+        console.error('Erro ao vincular transações:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: (message) => {
+      // 🎯 **INVALIDAÇÃO GLOBAL** - Atualiza TUDO relacionado a transações e ramos
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      console.log('✅ Transações vinculadas aos ramos - cache global invalidado:', message);
+    },
+    onError: (error) => {
+      console.error('Erro ao vincular transações:', error);
+    }
+  });
+
   return {
     transactions,
     loading,
@@ -339,6 +368,9 @@ export function useSupabaseTransactions() {
     addPartialPayment: (transactionId: string, amountPaid: number, description?: string) =>
       addPartialPaymentMutation.mutateAsync({ transactionId, amountPaid, description }),
     getTransactionPayments,
+    // 🆕 NOVA FUNÇÃO PARA VINCULAR TRANSAÇÕES AOS RAMOS
+    linkTransactions: linkTransactionsMutation.mutateAsync,
+    isLinkingTransactions: linkTransactionsMutation.isPending,
     refetch: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });

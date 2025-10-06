@@ -1257,6 +1257,7 @@ export type Database = {
           paid_date: string | null
           policy_id: string | null
           producer_id: string | null
+          ramo_id: string | null
           status: string
           transaction_date: string
           type_id: string
@@ -1277,6 +1278,7 @@ export type Database = {
           paid_date?: string | null
           policy_id?: string | null
           producer_id?: string | null
+          ramo_id?: string | null
           status: string
           transaction_date: string
           type_id: string
@@ -1297,6 +1299,7 @@ export type Database = {
           paid_date?: string | null
           policy_id?: string | null
           producer_id?: string | null
+          ramo_id?: string | null
           status?: string
           transaction_date?: string
           type_id?: string
@@ -1337,6 +1340,13 @@ export type Database = {
             columns: ["producer_id"]
             isOneToOne: false
             referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_ramo_id_fkey"
+            columns: ["ramo_id"]
+            isOneToOne: false
+            referencedRelation: "ramos"
             referencedColumns: ["id"]
           },
         ]
@@ -1635,6 +1645,10 @@ export type Database = {
       is_admin: {
         Args: { user_id?: string }
         Returns: boolean
+      }
+      link_manual_transactions: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       preview_apolices_filtradas: {
         Args: { p_ramo?: string; p_seguradora_id?: string; p_user_id: string }
