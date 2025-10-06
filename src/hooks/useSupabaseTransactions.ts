@@ -62,29 +62,65 @@ export function useSupabaseTransactions() {
     mutationFn: async (transactionData: Omit<Transaction, 'id' | 'createdAt'>) => {
       if (!user) throw new Error('Usuário não autenticado');
 
+      // 🎯 ENRIQUECIMENTO AUTOMÁTICO - Se policyId for fornecido, buscar dados da apólice
+      let enrichedData = { ...transactionData };
+      
+      if (transactionData.policyId) {
+        try {
+          const { data: policy, error: policyError } = await supabase
+            .from('apolices')
+            .select('insurance_company, producer_id, type, ramo_id, brokerage_id')
+            .eq('id', transactionData.policyId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (!policyError && policy) {
+            // Enriquecer automaticamente com dados da apólice
+            if (!enrichedData.companyId && policy.insurance_company) {
+              enrichedData.companyId = policy.insurance_company;
+            }
+            if (!enrichedData.producerId && policy.producer_id) {
+              enrichedData.producerId = policy.producer_id;
+            }
+            if (!enrichedData.brokerageId && policy.brokerage_id) {
+              enrichedData.brokerageId = policy.brokerage_id;
+            }
+            
+            console.log('✅ Transação enriquecida automaticamente com dados da apólice:', {
+              companyId: enrichedData.companyId,
+              producerId: enrichedData.producerId,
+              brokerageId: enrichedData.brokerageId,
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ Não foi possível enriquecer transação com dados da apólice:', error);
+          // Continua com os dados originais se houver erro
+        }
+      }
+
       const { data, error } = await supabase
         .from('transactions')
         .insert([
           {
             user_id: user.id,
-            type_id: transactionData.typeId,
-            description: transactionData.description,
-            amount: transactionData.amount,
-            status: transactionData.status,
-            date: transactionData.date,
+            type_id: enrichedData.typeId,
+            description: enrichedData.description,
+            amount: enrichedData.amount,
+            status: enrichedData.status,
+            date: enrichedData.date,
             
             // 🆕 INSERÇÃO DOS CAMPOS FINANCEIRO
-            nature: transactionData.nature,
-            transaction_date: transactionData.transactionDate,
-            due_date: transactionData.dueDate,
+            nature: enrichedData.nature,
+            transaction_date: enrichedData.transactionDate,
+            due_date: enrichedData.dueDate,
             
-            // 🆕 INSERÇÃO DOS NOVOS CAMPOS DNA DA CORRETAGEM
-            brokerage_id: transactionData.brokerageId || null,
-            producer_id: transactionData.producerId || null,
+            // 🆕 INSERÇÃO DOS NOVOS CAMPOS DNA DA CORRETAGEM (ENRIQUECIDOS)
+            brokerage_id: enrichedData.brokerageId || null,
+            producer_id: enrichedData.producerId || null,
             
-            client_id: transactionData.clientId || null,
-            policy_id: transactionData.policyId || null,
-            company_id: transactionData.companyId || null,
+            client_id: enrichedData.clientId || null,
+            policy_id: enrichedData.policyId || null,
+            company_id: enrichedData.companyId || null,
           },
         ])
         .select()
