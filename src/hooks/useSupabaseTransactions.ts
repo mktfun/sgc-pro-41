@@ -137,6 +137,7 @@ export function useSupabaseTransactions() {
       // 🎯 **INVALIDAÇÃO AUTOMÁTICA** - Invalida TODAS as queries relacionadas a transações
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
       console.log('✅ Transaction criada e cache invalidado (lista principal + paginada + relatórios)');
     },
     onError: (error) => {
@@ -211,8 +212,9 @@ export function useSupabaseTransactions() {
       // 🎯 **INVALIDAÇÃO AUTOMÁTICA** - Atualiza transações, pagamentos e relatórios
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
       queryClient.invalidateQueries({ queryKey: ['transaction-payments'] });
-      console.log('✅ Pagamento parcial registrado - cache invalidado (lista + paginada + pagamentos)');
+      console.log('✅ Pagamento parcial registrado - cache invalidado (lista + paginada + pagamentos + relatórios)');
     },
     onError: (error) => {
       console.error('Erro ao processar pagamento parcial:', error);
@@ -288,7 +290,8 @@ export function useSupabaseTransactions() {
       // 🎯 **INVALIDAÇÃO AUTOMÁTICA** - Invalida todas as queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
-      console.log('✅ Transaction atualizada - cache invalidado (lista + paginada)');
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
+      console.log('✅ Transaction atualizada - cache invalidado (lista + paginada + relatórios)');
     },
     onError: (error) => {
       console.error('Erro ao atualizar transaction:', error);
@@ -314,7 +317,8 @@ export function useSupabaseTransactions() {
       // 🎯 **INVALIDAÇÃO AUTOMÁTICA** - Invalida todas as queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
-      console.log('✅ Transaction deletada - cache invalidado (lista + paginada)');
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
+      console.log('✅ Transaction deletada - cache invalidado (lista + paginada + relatórios)');
     },
     onError: (error) => {
       console.error('Erro ao deletar transaction:', error);
@@ -338,6 +342,7 @@ export function useSupabaseTransactions() {
     refetch: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
     },
   };
 }

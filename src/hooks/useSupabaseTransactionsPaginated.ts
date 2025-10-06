@@ -187,9 +187,10 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
       if (error) throw error;
     },
     onSuccess: () => {
-      // 🎯 INVALIDAÇÃO AUTOMÁTICA - Invalida ambas as queries
+      // 🎯 INVALIDAÇÃO AUTOMÁTICA - Invalida todas as queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
     },
   });
 
@@ -221,9 +222,10 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
     const { data: updatedRows, error: updateError } = await updateQuery.select('id');
     if (updateError) throw updateError;
 
-    // Invalida ambas as queries
+    // Invalida todas as queries relacionadas
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['transactions-paginated'] });
+    queryClient.invalidateQueries({ queryKey: ['reports-transacoes'] });
     return updatedRows?.length || 0;
   };
 
