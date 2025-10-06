@@ -78,8 +78,8 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
   // 🛡️ GUARD CLAUSE CENTRAL - Dados prontos para cálculos
   const isDataReady = useMemo(() => 
     !transactionsLoading && !ramosLoading && !companiesLoading && 
-    Array.isArray(transactions) && Array.isArray(ramos),
-    [transactionsLoading, ramosLoading, companiesLoading, transactions, ramos]
+    Array.isArray(transactions) && Array.isArray(ramos) && Array.isArray(companies),
+    [transactionsLoading, ramosLoading, companiesLoading, transactions, ramos, companies]
   );
 
   // 🔥 KPI 1: CLIENTES ATIVOS - MEMOIZAÇÃO INDIVIDUAL
