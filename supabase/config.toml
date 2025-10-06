@@ -6,3 +6,6 @@ verify_jwt = false
 [functions.ai-assistant]
 verify_jwt = false
 
+[functions.enrich-old-transactions]
+verify_jwt = true
+
