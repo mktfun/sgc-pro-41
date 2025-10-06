@@ -361,55 +361,57 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     }
   }, [policies, policiesLoading, dateRange]);
 
-  // GRÁFICOS DE PIZZA COM FILTRO DE DATA
+  // 📊 GRÁFICOS DE PIZZA COM FILTRO DE DATA - BASEADO EM TRANSAÇÕES PAGAS
   const branchDistributionData = useMemo(() => {
-    if (policiesLoading) return [];
+    if (transactionsLoading) return [];
     
-    let filteredPolicies = policies;
+    // ✅ USAR TRANSAÇÕES ao invés de apólices (mesma lógica dos Relatórios)
+    let filteredTransactions = transactions;
     
     // Aplicar filtro de data se fornecido
     if (dateRange?.from && dateRange?.to) {
-      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+      filteredTransactions = transactions.filter(t => isDateInRange(t.date));
     }
     
-    // Build lookup maps for ramo names
+    // Filtrar apenas transações PAGAS de RECEITA
+    const paidTransactions = filteredTransactions.filter(t => 
+      t.nature === 'RECEITA' && 
+      (t.status === 'PAGO' || t.status === 'REALIZADO')
+    );
+    
+    // Build lookup map for ramo names com guard clause
     const ramoById = new Map<string, string>();
-    const ramoByNormalizedName = new Map<string, string>();
-    
-    ramos.forEach(r => {
-      ramoById.set(r.id, r.nome);
-      ramoByNormalizedName.set(r.nome.toLowerCase().trim(), r.nome);
-    });
-    
-    const branchData: { [key: string]: { count: number; value: number; commission: number; totalPolicies: any[] } } = {};
-    
-    filteredPolicies
-      .filter(policy => policy.status === 'Ativa')
-      .forEach(policy => {
-        const t = policy.type || '';
-        
-        // Priority: 1) ramos.nome from JOIN, 2) UUID lookup, 3) Name normalization, 4) Fallback
-        const branch =
-          (policy as any).ramos?.nome
-          || (isUuid(t) ? ramoById.get(t) : undefined)
-          || (t ? ramoByNormalizedName.get(t.toLowerCase().trim()) : undefined)
-          || 'Não informado';
-        
-        const value = policy.premiumValue || 0;
-        const commission = calculateCommissionValue(value, policy.type || '');
-
-        if (!branchData[branch]) {
-          branchData[branch] = { count: 0, value: 0, commission: 0, totalPolicies: [] };
+    if (ramos && Array.isArray(ramos)) {
+      ramos.forEach(r => {
+        if (r?.id && r?.nome) {
+          ramoById.set(r.id, r.nome);
         }
-        branchData[branch].count += 1;
-        branchData[branch].value += value;
-        branchData[branch].commission += commission;
-        branchData[branch].totalPolicies.push(policy);
       });
+    }
+    
+    // Agrupar por ramo_id
+    const branchData: { [key: string]: { count: number; value: number; commission: number } } = {};
+    
+    paidTransactions.forEach(transaction => {
+      const ramoId = transaction.ramoId || 'Não informado';
+      
+      // Buscar nome do ramo com fallback seguro
+      const branch = ramoId !== 'Não informado' && ramoById.has(ramoId) 
+        ? ramoById.get(ramoId)! 
+        : 'Não informado';
+      
+      const value = transaction.amount || 0;
+
+      if (!branchData[branch]) {
+        branchData[branch] = { count: 0, value: 0, commission: 0 };
+      }
+      branchData[branch].count += 1;
+      branchData[branch].value += value;
+      branchData[branch].commission += value; // Transação já é a comissão
+    });
 
     // Converter para array e ordenar por valor
     let distribution = Object.entries(branchData).map(([ramo, data]) => {
-      // Calcular taxa média de comissão para este ramo
       const avgCommissionRate = data.value > 0 ? (data.commission / data.value) * 100 : 0;
 
       return {
@@ -435,12 +437,11 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
           total: acc.total + item.total,
           valor: acc.valor + item.valor,
           valorComissao: acc.valorComissao + item.valorComissao,
-          taxaMediaComissao: 0 // Será recalculado abaixo
+          taxaMediaComissao: 0
         }),
         { ramo: 'Outros', total: 0, valor: 0, valorComissao: 0, taxaMediaComissao: 0 }
       );
 
-      // Recalcular taxa média de comissão para "Outros"
       if (othersData.valor > 0) {
         othersData.taxaMediaComissao = (othersData.valorComissao / othersData.valor) * 100;
       }
@@ -448,42 +449,45 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
       distribution = [...mainItems.slice(0, 7), othersData];
     }
     
-    console.log('📊 Distribuição por ramos (com filtro de data):', distribution);
+    console.log('📊 Dashboard - Distribuição por ramos (transações pagas):', distribution);
     return distribution;
-  }, [policies, policiesLoading, dateRange]);
+  }, [transactions, transactionsLoading, dateRange, ramos]);
 
-  // 🆕 KPI 10: DISTRIBUIÇÃO POR SEGURADORAS COM FILTRO DE DATA
+  // 📊 DISTRIBUIÇÃO POR SEGURADORAS COM FILTRO DE DATA - BASEADO EM TRANSAÇÕES PAGAS
   const companyDistributionData = useMemo(() => {
-    if (policiesLoading) return [];
+    if (transactionsLoading) return [];
     
-    let filteredPolicies = policies;
+    // ✅ USAR TRANSAÇÕES ao invés de apólices (mesma lógica dos Relatórios)
+    let filteredTransactions = transactions;
     
     // Aplicar filtro de data se fornecido
     if (dateRange?.from && dateRange?.to) {
-      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+      filteredTransactions = transactions.filter(t => isDateInRange(t.date));
     }
     
-    const companyData: { [key: string]: { count: number; value: number; commission: number; totalPolicies: any[] } } = {};
+    // Filtrar apenas transações PAGAS de RECEITA
+    const paidTransactions = filteredTransactions.filter(t => 
+      t.nature === 'RECEITA' && 
+      (t.status === 'PAGO' || t.status === 'REALIZADO')
+    );
     
-    filteredPolicies
-      .filter(policy => policy.status === 'Ativa')
-      .forEach(policy => {
-        const companyId = policy.insuranceCompany || 'Não informado';
-        const value = policy.premiumValue || 0;
-        const commission = calculateCommissionValue(value, policy.type || '');
+    // Agrupar por company_id
+    const companyData: { [key: string]: { count: number; value: number; commission: number } } = {};
+    
+    paidTransactions.forEach(transaction => {
+      const companyId = (transaction as any).company_id || 'Não informado';
+      const value = transaction.amount || 0;
 
-        if (!companyData[companyId]) {
-          companyData[companyId] = { count: 0, value: 0, commission: 0, totalPolicies: [] };
-        }
-        companyData[companyId].count += 1;
-        companyData[companyId].value += value;
-        companyData[companyId].commission += commission;
-        companyData[companyId].totalPolicies.push(policy);
-      });
+      if (!companyData[companyId]) {
+        companyData[companyId] = { count: 0, value: 0, commission: 0 };
+      }
+      companyData[companyId].count += 1;
+      companyData[companyId].value += value;
+      companyData[companyId].commission += value; // Transação já é a comissão
+    });
 
     // Converter para array e ordenar por valor
     let distribution = Object.entries(companyData).map(([companyId, data]) => {
-      // Calcular taxa média de comissão para esta seguradora
       const avgCommissionRate = data.value > 0 ? (data.commission / data.value) * 100 : 0;
 
       return {
@@ -509,12 +513,11 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
           total: acc.total + item.total,
           valor: acc.valor + item.valor,
           valorComissao: acc.valorComissao + item.valorComissao,
-          taxaMediaComissao: 0 // Será recalculado abaixo
+          taxaMediaComissao: 0
         }),
         { seguradora: 'Outros', total: 0, valor: 0, valorComissao: 0, taxaMediaComissao: 0 }
       );
 
-      // Recalcular taxa média de comissão para "Outros"
       if (othersData.valor > 0) {
         othersData.taxaMediaComissao = (othersData.valorComissao / othersData.valor) * 100;
       }
@@ -522,7 +525,7 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
       distribution = [...mainItems.slice(0, 7), othersData];
     }
     
-    console.log('📊 Distribuição por seguradoras (com filtro de data):', distribution);
+    console.log('📊 Dashboard - Distribuição por seguradoras (transações pagas):', distribution);
     return distribution;
   }, [policies, policiesLoading, getCompanyName, dateRange]);
 

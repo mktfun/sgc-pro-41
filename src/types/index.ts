@@ -115,6 +115,7 @@ export interface Transaction {
   // 🆕 NOVOS CAMPOS DNA DA CORRETAGEM
   brokerageId?: number; // ID da corretora
   producerId?: string; // ID do produtor
+  ramoId?: string; // ID do ramo de seguro
   
   // Associações opcionais
   clientId?: string;
