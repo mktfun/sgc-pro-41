@@ -85,6 +85,10 @@ export function useSupabaseTransactions() {
             if (!enrichedData.brokerageId && policy.brokerage_id) {
               enrichedData.brokerageId = policy.brokerage_id;
             }
+            // ✅ CORREÇÃO: Atribuir o ramo_id da apólice para a transação
+            if (!enrichedData.ramoId && policy.ramo_id) {
+              enrichedData.ramoId = policy.ramo_id;
+            }
             
             console.log('✅ Transação enriquecida automaticamente com dados da apólice:', {
               companyId: enrichedData.companyId,
@@ -117,6 +121,8 @@ export function useSupabaseTransactions() {
             // 🆕 INSERÇÃO DOS NOVOS CAMPOS DNA DA CORRETAGEM (ENRIQUECIDOS)
             brokerage_id: enrichedData.brokerageId || null,
             producer_id: enrichedData.producerId || null,
+            // ✅ CORREÇÃO: Incluir o ramo_id no objeto de inserção
+            ramo_id: enrichedData.ramoId || null,
             
             client_id: enrichedData.clientId || null,
             policy_id: enrichedData.policyId || null,
