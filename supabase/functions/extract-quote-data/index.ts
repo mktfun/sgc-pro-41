@@ -173,49 +173,55 @@ async function fetchDatabaseContext() {
  * Gera prompt RAG v3.0 com contexto do banco de dados
  */
 function buildRAGPrompt(pdfText: string, ramos: any[], companies: any[]): string {
-  const ramosList = ramos.map(r => r.nome).join(', ');
-  const companiesList = companies.map(c => c.name).join(', ');
+  const ramosList = ramos.map(r => r.nome).join('", "');
+  const companiesList = companies.map(c => c.name).join('", "');
 
   return `# PERSONA
-Você é um assistente de IA sênior especializado em conciliar documentos de seguros com sistemas de gestão de corretoras.
+Aja como um assistente de IA sênior, especialista em conciliar documentos de seguros com sistemas de gestão de corretoras.
 
 # CONTEXTO
-Você recebeu um texto extraído de um orçamento de seguro em PDF, além de listas de dados que JÁ EXISTEM no sistema do usuário.
+Você recebeu um texto extraído de um orçamento de seguro (PDF) e duas listas de referência: "Ramos Cadastrados" e "Seguradoras Cadastradas". Essas listas são a **FONTE DA VERDADE**. O texto do PDF é apenas uma pista.
 
-Sua principal missão é fazer o "match" inteligente entre o que está escrito no PDF e os dados cadastrados no sistema.
+Sua tarefa principal é analisar o texto do PDF e, para os campos 'insurerName' e 'insuranceLine', encontrar a correspondência **MAIS PRÓXIMA** dentro das listas fornecidas e retornar o valor **EXATO** da lista.
 
-# LISTAS DO SISTEMA (USE ESSES VALORES EXATOS NA RESPOSTA):
+# LISTAS DO SISTEMA (FONTE DA VERDADE)
 
 **Ramos Cadastrados:**
-${ramosList}
+["${ramosList}"]
 
 **Seguradoras Cadastradas:**
-${companiesList}
+["${companiesList}"]
 
-# INSTRUÇÕES DE EXTRAÇÃO
+# REGRAS DE MATCHING (CRÍTICO)
 
-Para cada campo abaixo, analise o texto do PDF e extraia os dados. Para os campos "insuranceLine" e "insurerName", você DEVE retornar o nome EXATO que consta nas listas acima.
+Ao analisar 'insurerName' e 'insuranceLine', você DEVE seguir estas regras para encontrar o valor correto na lista:
 
-## Campos a extrair:
+1. **PRIORIDADE MÁXIMA:** A sua resposta para esses campos DEVE ser um dos valores EXATOS das listas acima.
+2. **ABREVIAÇÕES:** Se o PDF diz "Responsabilidade Civil Profissional" e a lista tem "RC Profissional", sua resposta DEVE ser "RC Profissional".
+3. **NOMES PARCIAIS:** Se o PDF diz "Porto Seguro Companhia de Seguros Gerais" e a lista tem "Porto Seguro", sua resposta DEVE ser "Porto Seguro". Se a lista tiver apenas "Porto", sua resposta DEVE ser "Porto".
+4. **IGNORAR CAPITALIZAÇÃO:** O match deve ser feito ignorando se as letras são maiúsculas ou minúsculas.
 
-1. **clientName**: Nome completo da pessoa ou empresa segurada (o cliente).
-   - Exemplo: "THAIS MAIA", "João da Silva Transportes LTDA"
+⚠️ Se, e somente se, NENHUMA correspondência razoável for encontrada nas listas, retorne \`null\`.
 
-2. **insuredItem**: O bem ou objeto principal do seguro.
+# CAMPOS PARA EXTRAIR
+
+1. **clientName**: Nome do Segurado (pessoa ou empresa). Fique atento a campos como "Segurado:", "Proponente:" ou "Cliente:".
+
+2. **insuredItem**: O bem segurado.
    - Para Automóvel: "Honda Civic LXR 2023"
    - Para Residencial: "Residência - Rua X, 123"
    - Para RC Profissional: "Médico" ou "Advogado" (a profissão)
 
 3. **insurerName**: Nome da seguradora.
-   - ⚠️ IMPORTANTE: Retorne o nome EXATO da lista "Seguradoras Cadastradas".
+   - ⚠️ **IMPORTANTE: Retorne o nome EXATO da lista "Seguradoras Cadastradas".**
    - Se o PDF mencionar "Porto Seguro Companhia" e na lista tiver "Porto Seguro", retorne "Porto Seguro".
-   - Se não encontrar correspondência, retorne null.
+   - Se não encontrar correspondência, retorne \`null\`.
 
 4. **insuranceLine**: Ramo do seguro.
-   - ⚠️ IMPORTANTE: Retorne o nome EXATO da lista "Ramos Cadastrados".
+   - ⚠️ **IMPORTANTE: Retorne o nome EXATO da lista "Ramos Cadastrados".**
    - Se o PDF mencionar "Responsabilidade Civil Profissional" e na lista tiver "RC Profissional", retorne "RC Profissional".
    - Se o PDF mencionar "Seguro de Automóvel" e na lista tiver "Auto", retorne "Auto".
-   - Se não encontrar correspondência, retorne null.
+   - Se não encontrar correspondência, retorne \`null\`.
 
 5. **policyNumber**: Número completo do orçamento ou proposta.
 
@@ -227,14 +233,14 @@ Para cada campo abaixo, analise o texto do PDF e extraia os dados. Para os campo
    - Retorne apenas o número (ex: 20, não "20%").
 
 8. **shouldGenerateRenewal**: 
-   - Retorne true se o documento indicar "Seguro Novo" ou "Renovação".
-   - Retorne false se indicar "Endosso" ou não especificar.
+   - Retorne \`true\` se o documento indicar "Seguro Novo" ou "Renovação".
+   - Retorne \`false\` se indicar "Endosso" ou não especificar.
 
 9. **startDate**: Data de início de vigência.
    - Formato: YYYY-MM-DD
 
 # FORMATO DE SAÍDA
-Retorne APENAS um objeto JSON válido. Não inclua explicações. Se um campo não for encontrado, use null.
+Retorne APENAS um objeto JSON válido. Não inclua explicações. Se um campo não for encontrado, use \`null\`.
 
 # TEXTO EXTRAÍDO DO ORÇAMENTO:
 ${pdfText.substring(0, 8000)}
