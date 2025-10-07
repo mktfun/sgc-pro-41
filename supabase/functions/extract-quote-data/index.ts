@@ -1,0 +1,278 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface ExtractedQuoteData {
+  insuredItem: string | null;
+  insurerName: string | null;
+  insuranceLine: string | null;
+  policyNumber: string | null;
+  premiumValue: number | null;
+  commissionPercentage: number | null;
+  shouldGenerateRenewal: boolean;
+  startDate: string | null;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { pdfBase64, fileName } = await req.json();
+
+    if (!pdfBase64) {
+      throw new Error('PDF base64 é obrigatório');
+    }
+
+    console.log('📄 Processando arquivo:', fileName || 'sem nome');
+
+    // 1️⃣ EXTRAIR TEXTO DO PDF
+    const pdfText = await extractTextFromPDF(pdfBase64);
+    
+    if (!pdfText || pdfText.trim().length < 50) {
+      throw new Error('Não foi possível extrair texto suficiente do PDF. Verifique se o arquivo não está corrompido ou protegido.');
+    }
+
+    console.log('✅ Texto extraído do PDF:', pdfText.substring(0, 200) + '...');
+
+    // 2️⃣ CHAMAR GEMINI PARA EXTRAÇÃO ESTRUTURADA
+    const extractedData = await extractDataWithAI(pdfText);
+
+    console.log('✅ Dados extraídos com sucesso:', extractedData);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: extractedData,
+        metadata: {
+          textLength: pdfText.length,
+          fileName: fileName || 'unknown'
+        }
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+
+  } catch (error) {
+    console.error('❌ Erro na extração:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: error instanceof Error ? error.stack : undefined
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
+
+/**
+ * Extrai texto do PDF usando pdf-parse
+ * Para produção, considere usar serviços como PDFCo ou Adobe PDF Services
+ */
+async function extractTextFromPDF(base64: string): Promise<string> {
+  try {
+    // Decodificar base64
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Para esta primeira versão, vamos usar uma API externa simples
+    // TODO: Substituir por pdf-parse quando disponível no Deno
+    const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': Deno.env.get('PDFCO_API_KEY') || 'demo' // Usar chave demo se não configurada
+      },
+      body: JSON.stringify({
+        url: `data:application/pdf;base64,${base64}`,
+        async: false
+      })
+    });
+
+    if (!response.ok) {
+      // Fallback: extrair texto básico (pode não funcionar para PDFs complexos)
+      console.warn('⚠️ API PDFCo falhou, usando fallback básico');
+      return extractBasicText(bytes);
+    }
+
+    const result = await response.json();
+    return result.text || '';
+
+  } catch (error) {
+    console.error('❌ Erro ao extrair texto do PDF:', error);
+    throw new Error('Falha ao processar PDF: ' + (error instanceof Error ? error.message : 'erro desconhecido'));
+  }
+}
+
+/**
+ * Fallback básico para extrair texto de PDFs simples
+ */
+function extractBasicText(pdfBytes: Uint8Array): string {
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const text = decoder.decode(pdfBytes);
+  
+  // Regex básico para extrair strings de texto entre parênteses (formato PDF)
+  const matches = text.match(/\(([^)]+)\)/g);
+  if (!matches) return text.substring(0, 5000); // Fallback para texto bruto
+  
+  return matches
+    .map(m => m.slice(1, -1)) // Remove parênteses
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Usa Gemini via Lovable AI Gateway para extrair dados estruturados
+ */
+async function extractDataWithAI(pdfText: string): Promise<ExtractedQuoteData> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY não configurada');
+  }
+
+  const systemPrompt = `Você é um assistente especialista em processamento de documentos para corretoras de seguro.
+Sua única função é extrair informações específicas de textos de orçamento de seguro e retorná-las em formato estruturado.
+
+CONTEXTO: O texto fornecido foi extraído de um PDF de orçamento. O layout original foi perdido.
+
+IMPORTANTE:
+- Seja preciso e conservador. Se não tiver certeza, retorne null.
+- Para "shouldGenerateRenewal": retorne true APENAS se encontrar "Seguro Novo" ou "Renovação". Para "Endosso" ou qualquer outra coisa, retorne false.
+- Para "insuranceLine": deduza o ramo genérico (Automóvel, Residencial, Vida, Empresarial, etc.)
+- Para valores monetários: extraia apenas números, sem símbolos.`;
+
+  const userPrompt = `Analise o texto abaixo e extraia os campos solicitados:
+
+TEXTO DO ORÇAMENTO:
+${pdfText.substring(0, 8000)}
+
+${pdfText.length > 8000 ? '\n[TEXTO TRUNCADO - PDF MUITO LONGO]' : ''}`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'extract_quote_fields',
+              description: 'Extrai campos estruturados de um orçamento de seguro',
+              parameters: {
+                type: 'object',
+                properties: {
+                  insuredItem: {
+                    type: 'string',
+                    description: 'O bem principal sendo segurado (ex: Honda Civic, Residência)',
+                    nullable: true
+                  },
+                  insurerName: {
+                    type: 'string',
+                    description: 'Nome da seguradora (ex: Porto Seguro, Allianz)',
+                    nullable: true
+                  },
+                  insuranceLine: {
+                    type: 'string',
+                    description: 'Ramo do seguro (ex: Automóvel, Residencial, Vida)',
+                    nullable: true
+                  },
+                  policyNumber: {
+                    type: 'string',
+                    description: 'Número do orçamento ou proposta',
+                    nullable: true
+                  },
+                  premiumValue: {
+                    type: 'number',
+                    description: 'Valor total do prêmio em reais (apenas número)',
+                    nullable: true
+                  },
+                  commissionPercentage: {
+                    type: 'number',
+                    description: 'Comissão em porcentagem (apenas número)',
+                    nullable: true
+                  },
+                  shouldGenerateRenewal: {
+                    type: 'boolean',
+                    description: 'true se for Seguro Novo ou Renovação, false caso contrário'
+                  },
+                  startDate: {
+                    type: 'string',
+                    description: 'Data de início de vigência no formato YYYY-MM-DD',
+                    nullable: true
+                  }
+                },
+                required: ['shouldGenerateRenewal'],
+                additionalProperties: false
+              }
+            }
+          }
+        ],
+        tool_choice: { type: 'function', function: { name: 'extract_quote_fields' } }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro na API Lovable AI:', response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Limite de requisições excedido. Aguarde alguns instantes.');
+      }
+      if (response.status === 402) {
+        throw new Error('Créditos insuficientes no Lovable AI. Adicione créditos no workspace.');
+      }
+      
+      throw new Error(`Erro na API Lovable AI: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('🤖 Resposta do Gemini:', JSON.stringify(result, null, 2));
+
+    // Extrair dados do tool call
+    const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function?.name !== 'extract_quote_fields') {
+      throw new Error('Gemini não retornou os dados esperados');
+    }
+
+    const extractedData = JSON.parse(toolCall.function.arguments);
+    
+    return {
+      insuredItem: extractedData.insuredItem || null,
+      insurerName: extractedData.insurerName || null,
+      insuranceLine: extractedData.insuranceLine || null,
+      policyNumber: extractedData.policyNumber || null,
+      premiumValue: extractedData.premiumValue || null,
+      commissionPercentage: extractedData.commissionPercentage || null,
+      shouldGenerateRenewal: extractedData.shouldGenerateRenewal || false,
+      startDate: extractedData.startDate || null
+    };
+
+  } catch (error) {
+    console.error('❌ Erro ao chamar Gemini:', error);
+    throw error;
+  }
+}
