@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { Transaction, TransactionPayment } from '@/types';
 import { getCommissionTypeId } from '@/services/commissionService';
+import { transformTransactionData } from '@/utils/dataTransformers';
 
 export function useSupabaseTransactions() {
   const queryClient = useQueryClient();
@@ -25,30 +26,8 @@ export function useSupabaseTransactions() {
         throw error;
       }
 
-      // ✅ CONVERSÃO ATUALIZADA INCLUINDO NOVO STATUS PARCIALMENTE_PAGO
-      const formattedTransactions: Transaction[] = data?.map((transaction: any) => ({
-        id: transaction.id,
-        typeId: transaction.type_id,
-        description: transaction.description,
-        amount: typeof transaction.amount === 'string' ? parseFloat(transaction.amount) : transaction.amount,
-        status: transaction.status as Transaction['status'],
-        date: transaction.date,
-        
-        // 🆕 MAPEAMENTO DOS CAMPOS FINANCEIRO
-        nature: transaction.nature as Transaction['nature'],
-        transactionDate: transaction.transaction_date,
-        dueDate: transaction.due_date,
-        
-        // 🆕 MAPEAMENTO DOS NOVOS CAMPOS DNA DA CORRETAGEM
-        brokerageId: transaction.brokerage_id || undefined,
-        producerId: transaction.producer_id || undefined,
-        ramoId: transaction.ramo_id || undefined,
-        
-        clientId: transaction.client_id,
-        policyId: transaction.policy_id,
-        companyId: transaction.company_id,
-        createdAt: transaction.created_at,
-      })) || [];
+      // ✅ USAR transformTransactionData PARA GARANTIR CONSISTÊNCIA
+      const formattedTransactions: Transaction[] = data?.map(transformTransactionData) || [];
 
       console.log('✅ Transações carregadas:', formattedTransactions.length);
       return formattedTransactions;

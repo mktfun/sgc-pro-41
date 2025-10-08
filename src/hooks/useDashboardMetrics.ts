@@ -400,6 +400,8 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     const branchData: { [key: string]: { count: number; value: number; commission: number } } = {};
     
     paidTransactions.forEach(transaction => {
+      // 🔍 DIAGNÓSTICO: Verificar presença de ramoId
+      console.log('🔍 [Dashboard] ramoId:', transaction.ramoId, 'ramo_id:', (transaction as any).ramo_id);
       const ramoId = transaction.ramoId || 'Não informado';
       
       // Buscar nome do ramo com fallback seguro
