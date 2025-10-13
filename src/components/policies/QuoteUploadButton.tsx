@@ -20,18 +20,19 @@ const sanitizeFilename = (filename: string): string => {
 
 export interface ExtractedQuoteData {
   clientName: string | null;
-  clientId: string | null;
+  clientId?: string | null; // ✅ NOVO: ID do cliente encontrado na base (opcional para retrocompatibilidade)
   insuredItem: string | null;
   insurerName: string | null;
-  insurerId: string | null;
+  insurerId?: string | null; // ✅ NOVO: ID da seguradora encontrada (opcional)
   insuranceLine: string | null;
-  insuranceLineId: string | null;
+  insuranceLineId?: string | null; // ✅ NOVO: ID do ramo encontrado (opcional)
   policyNumber: string | null;
   premiumValue: number | null;
   commissionPercentage: number | null;
   shouldGenerateRenewal: boolean;
   startDate: string | null;
-  matchingDetails: {
+  // ✅ NOVO: Metadados de matching (opcional para retrocompatibilidade)
+  matchingDetails?: {
     clientMatch: 'exact' | 'partial' | 'none';
     insurerMatch: 'exact' | 'partial' | 'none';
     ramoMatch: 'exact' | 'partial' | 'none';
@@ -117,15 +118,20 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
 
       console.log('✅ Dados extraídos:', data.data);
 
-      // Armazenar resultados de matching para exibir feedback
-      setMatchingResults(data.data.matchingDetails);
+      // ✅ CORRIGIDO: Verificar se matchingDetails existe antes de usar
+      if (data.data.matchingDetails) {
+        setMatchingResults(data.data.matchingDetails);
+      }
 
       setStatus('success');
       
-      // Toast com detalhes de matching
-      const matchSummary = getMatchingSummary(data.data.matchingDetails);
+      // ✅ CORRIGIDO: Toast com verificação de matchingDetails
+      const matchSummary = data.data.matchingDetails 
+        ? getMatchingSummary(data.data.matchingDetails)
+        : 'Dados extraídos do PDF.';
+      
       toast.success('Orçamento processado com sucesso!', {
-        description: `Dados extraídos e vinculados. ${matchSummary}`
+        description: matchSummary
       });
 
       // Callback com os dados extraídos
@@ -155,12 +161,14 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
     }
   };
 
-  // Função para gerar resumo de matching
+  // ✅ CORRIGIDO: Função com validação de matching
   const getMatchingSummary = (matching: ExtractedQuoteData['matchingDetails']): string => {
+    if (!matching) return 'Dados extraídos do PDF.';
+    
     const matches = [];
-    if (matching.clientMatch !== 'none') matches.push('Cliente');
-    if (matching.insurerMatch !== 'none') matches.push('Seguradora');
-    if (matching.ramoMatch !== 'none') matches.push('Ramo');
+    if (matching.clientMatch && matching.clientMatch !== 'none') matches.push('Cliente');
+    if (matching.insurerMatch && matching.insurerMatch !== 'none') matches.push('Seguradora');
+    if (matching.ramoMatch && matching.ramoMatch !== 'none') matches.push('Ramo');
     
     if (matches.length === 0) return 'Nenhuma vinculação automática encontrada.';
     return `Vinculados: ${matches.join(', ')}.`;
@@ -218,38 +226,41 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
         </p>
       )}
 
-      {/* Exibir badges de matching quando processamento for bem-sucedido */}
+      {/* ✅ CORRIGIDO: Renderizar badges apenas se matchingResults existir */}
       {status === 'success' && matchingResults && (
-        <div className="mt-3 space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {matchingResults.clientMatch !== 'none' && (
-              <div className="flex items-center gap-1 text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded">
-                <User className="h-3 w-3" />
-                Cliente {matchingResults.clientMatch === 'exact' ? '✓' : '~'}
-              </div>
-            )}
-            
-            {matchingResults.insurerMatch !== 'none' && (
-              <div className="flex items-center gap-1 text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
-                <Building className="h-3 w-3" />
-                Seguradora {matchingResults.insurerMatch === 'exact' ? '✓' : '~'}
-              </div>
-            )}
-            
-            {matchingResults.ramoMatch !== 'none' && (
-              <div className="flex items-center gap-1 text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">
-                <Tag className="h-3 w-3" />
-                Ramo {matchingResults.ramoMatch === 'exact' ? '✓' : '~'}
-              </div>
-            )}
-          </div>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {matchingResults.clientMatch && matchingResults.clientMatch !== 'none' && (
+            <div className="flex items-center gap-1 text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded">
+              <User className="h-3 w-3" />
+              Cliente {matchingResults.clientMatch === 'exact' ? '✓' : '~'}
+            </div>
+          )}
           
-          <div className="p-2 bg-green-500/10 border border-green-500/20 rounded text-xs">
-            <p className="text-green-300 font-medium">✓ Dados extraídos e vinculados automaticamente</p>
-            <p className="text-muted-foreground mt-1">
-              Revise os campos preenchidos antes de salvar a apólice.
-            </p>
-          </div>
+          {matchingResults.insurerMatch && matchingResults.insurerMatch !== 'none' && (
+            <div className="flex items-center gap-1 text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+              <Building className="h-3 w-3" />
+              Seguradora {matchingResults.insurerMatch === 'exact' ? '✓' : '~'}
+            </div>
+          )}
+          
+          {matchingResults.ramoMatch && matchingResults.ramoMatch !== 'none' && (
+            <div className="flex items-center gap-1 text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">
+              <Tag className="h-3 w-3" />
+              Ramo {matchingResults.ramoMatch === 'exact' ? '✓' : '~'}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* ✅ MELHORADO: Feedback mais detalhado */}
+      {status === 'success' && (
+        <div className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded text-xs">
+          <p className="text-green-300 font-medium">✓ Dados extraídos do PDF</p>
+          <p className="text-muted-foreground mt-1">
+            {matchingResults 
+              ? 'Dados vinculados automaticamente. Revise os campos antes de salvar.'
+              : 'Revise os campos preenchidos antes de salvar a apólice.'}
+          </p>
         </div>
       )}
     </div>

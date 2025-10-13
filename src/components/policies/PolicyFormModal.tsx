@@ -26,6 +26,7 @@ import { useSupabaseCompanyBranches } from '@/hooks/useSupabaseCompanyBranches';
 import { Separator } from '@/components/ui/separator';
 import { policyFormSchema, PolicyFormData } from '@/schemas/policySchema';
 import { Policy } from '@/types';
+import { toast } from 'sonner';
 
 interface PolicyFormModalProps {
   policy?: Policy;
@@ -202,19 +203,62 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     setValue('clientId', newClient.id);
   };
 
-  // Handler para dados extraídos do PDF com RAG v4.0 + Matching Inteligente
+  // ✅ VERSÃO CORRIGIDA E RETROCOMPATÍVEL do handleQuoteDataExtracted
   const handleQuoteDataExtracted = async (data: ExtractedQuoteData) => {
-    console.log('📋 Preenchendo formulário com dados RAG v4.0:', data);
+    console.log('📋 Preenchendo formulário com dados extraídos:', data);
 
-    // 1. Cliente (com ID direto da base)
+    // ✅ CORRIGIDO: Verificar se matchingDetails existe antes de usar
+    if (data.matchingDetails) {
+      const matchingSummary = [];
+      if (data.matchingDetails.clientMatch !== 'none') matchingSummary.push(`Cliente (${data.matchingDetails.clientMatch})`);
+      if (data.matchingDetails.insurerMatch !== 'none') matchingSummary.push(`Seguradora (${data.matchingDetails.insurerMatch})`);
+      if (data.matchingDetails.ramoMatch !== 'none') matchingSummary.push(`Ramo (${data.matchingDetails.ramoMatch})`);
+
+      if (matchingSummary.length > 0) {
+        toast.success('Dados vinculados automaticamente', {
+          description: `Encontrados na base: ${matchingSummary.join(', ')}`
+        });
+      }
+    }
+
+    // 1. ✅ MELHORADO: Cliente (com suporte para versão antiga e nova)
     if (data.clientId) {
+      // ✅ VERSÃO NOVA: Com ID direto da base
       setValue('clientId', data.clientId);
-      console.log('✅ Cliente selecionado automaticamente:', data.clientName);
-      toast({
-        title: data.matchingDetails.clientMatch === 'exact' ? "Cliente identificado" : "Cliente identificado (parcial)",
-        description: `${data.clientName} ${data.matchingDetails.clientMatch === 'partial' ? '- verifique se está correto' : 'encontrado na base'}`,
-        duration: 3000,
-      });
+      console.log('✅ Cliente selecionado automaticamente (ID):', data.clientName);
+      
+      if (data.matchingDetails) {
+        if (data.matchingDetails.clientMatch === 'exact') {
+          toast.success('Cliente identificado', {
+            description: `${data.clientName} encontrado na base de dados`
+          });
+        } else if (data.matchingDetails.clientMatch === 'partial') {
+          toast.info('Cliente identificado (parcial)', {
+            description: `${data.clientName} - verifique se está correto`
+          });
+        }
+      }
+    } else if (data.clientName) {
+      // ✅ VERSÃO ANTIGA: Tentar fazer matching manual no frontend
+      console.log('👤 Cliente identificado (sem ID):', data.clientName);
+      
+      // Tentar encontrar cliente pelo nome
+      const foundClient = clients.find(c => 
+        c.name.toLowerCase() === data.clientName!.toLowerCase() ||
+        c.name.toLowerCase().includes(data.clientName!.toLowerCase()) ||
+        data.clientName!.toLowerCase().includes(c.name.toLowerCase())
+      );
+      
+      if (foundClient) {
+        setValue('clientId', foundClient.id);
+        toast.success('Cliente encontrado', {
+          description: `${foundClient.name} selecionado automaticamente`
+        });
+      } else {
+        toast.warning('Cliente não cadastrado', {
+          description: `${data.clientName} não foi encontrado. Considere cadastrá-lo primeiro.`
+        });
+      }
     }
 
     // 2. Bem Segurado
