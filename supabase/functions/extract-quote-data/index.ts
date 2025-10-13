@@ -118,17 +118,22 @@ async function fetchDatabaseContext() {
 // EXTRAIR DADOS COM GEMINI 2.5 FLASH VISION
 // ============================================
 async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  
+  if (!LOVABLE_API_KEY) {
+    console.error("❌ LOVABLE_API_KEY não configurada");
+    throw new Error("LOVABLE_API_KEY não está configurada");
+  }
+
   const prompt = buildVisionPrompt(dbContext);
 
   console.log('🤖 Chamando Gemini 2.5 Flash Vision...');
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
+      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
-      'HTTP-Referer': 'https://supabase.com',
-      'X-Title': 'Supabase Edge Function',
     },
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
@@ -157,6 +162,14 @@ async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
   if (!response.ok) {
     const errorText = await response.text();
     console.error('❌ Erro na API Lovable AI:', response.status, errorText);
+    
+    if (response.status === 402) {
+      throw new Error("Sem créditos na Lovable AI. Adicione créditos em Settings > Workspace > Usage");
+    }
+    if (response.status === 429) {
+      throw new Error("Rate limit excedido. Aguarde alguns minutos e tente novamente");
+    }
+    
     throw new Error(`Erro na API: ${response.status}`);
   }
 
