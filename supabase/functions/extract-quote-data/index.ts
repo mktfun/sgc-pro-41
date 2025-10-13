@@ -1,4 +1,4 @@
-// ✅ VERSÃO CORRIGIDA: Gemini 2.5 Flash com Vision (sem PDF.co)
+// ✅ VERSÃO CORRIGIDA: PDF.co (PDF → PNG) + Gemini 2.5 Flash Vision
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -19,24 +19,18 @@ serve(async (req) => {
       throw new Error('fileUrl é obrigatório');
     }
 
-    console.log('📄 Processando PDF com Gemini Vision:', fileUrl);
+    console.log('📄 Processando PDF:', fileUrl);
 
-    // 1️⃣ BAIXAR O PDF
-    const pdfResponse = await fetch(fileUrl);
-    if (!pdfResponse.ok) {
-      throw new Error(`Erro ao baixar PDF: ${pdfResponse.statusText}`);
-    }
-    
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
-    console.log('✅ PDF baixado:', pdfBuffer.byteLength, 'bytes');
+    // 1️⃣ CONVERTER PDF → PNG com PDF.co
+    const imageUrls = await convertPdfToImages(fileUrl);
+    console.log(`✅ ${imageUrls.length} página(s) convertida(s) para PNG`);
 
     // 2️⃣ BUSCAR CONTEXTO DO BANCO
     const dbContext = await fetchDatabaseContext();
     console.log(`✅ Contexto: ${dbContext.ramos.length} ramos, ${dbContext.companies.length} seguradoras, ${dbContext.clients.length} clientes`);
 
     // 3️⃣ EXTRAIR DADOS COM GEMINI VISION
-    const extractedData = await extractDataWithGeminiVision(pdfBase64, dbContext);
+    const extractedData = await extractDataWithGeminiVision(imageUrls, dbContext);
     console.log('✅ Dados extraídos:', extractedData);
 
     return new Response(
@@ -65,6 +59,64 @@ serve(async (req) => {
 });
 
 // ============================================
+// CONVERTER PDF → PNG com PDF.co
+// ============================================
+async function convertPdfToImages(pdfUrl: string): Promise<string[]> {
+  const PDF_CO_API_KEY = Deno.env.get('PDF_PARSER_API_KEY');
+  
+  if (!PDF_CO_API_KEY) {
+    throw new Error('PDF_PARSER_API_KEY não configurada');
+  }
+
+  console.log('🔄 Convertendo PDF para PNG com PDF.co...');
+
+  // Tentar converter todas as páginas primeiro
+  let pages = '-1'; // Todas as páginas
+  let response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
+    method: 'POST',
+    headers: {
+      'x-api-key': PDF_CO_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url: pdfUrl,
+      pages: pages,
+      async: false,
+    }),
+  });
+
+  let result = await response.json();
+
+  // Se falhar com todas as páginas, tentar apenas a primeira
+  if (!result.urls || result.urls.length === 0) {
+    console.log('⚠️ Falha ao processar todas as páginas, tentando apenas a primeira...');
+    pages = '0';
+    
+    response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
+      method: 'POST',
+      headers: {
+        'x-api-key': PDF_CO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: pdfUrl,
+        pages: pages,
+        async: false,
+      }),
+    });
+
+    result = await response.json();
+  }
+
+  if (!result.urls || result.urls.length === 0) {
+    throw new Error('PDF.co não retornou imagens');
+  }
+
+  console.log(`✅ PDF.co retornou ${result.urls.length} imagem(ns)`);
+  return result.urls;
+}
+
+// ============================================
 // BUSCAR CONTEXTO DO BANCO DE DADOS
 // ============================================
 async function fetchDatabaseContext() {
@@ -89,7 +141,7 @@ async function fetchDatabaseContext() {
 // ============================================
 // EXTRAIR DADOS COM GEMINI 2.5 FLASH VISION
 // ============================================
-async function extractDataWithGeminiVision(pdfBase64: string, dbContext: any) {
+async function extractDataWithGeminiVision(imageUrls: string[], dbContext: any) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!LOVABLE_API_KEY) {
@@ -98,7 +150,7 @@ async function extractDataWithGeminiVision(pdfBase64: string, dbContext: any) {
 
   const prompt = buildVisionPrompt(dbContext);
 
-  console.log('🤖 Chamando Gemini 2.5 Flash Vision...');
+  console.log(`🤖 Chamando Gemini Vision com ${imageUrls.length} imagem(ns)...`);
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -116,12 +168,10 @@ async function extractDataWithGeminiVision(pdfBase64: string, dbContext: any) {
               type: 'text',
               text: prompt
             },
-            {
+            ...imageUrls.map(url => ({
               type: 'image_url',
-              image_url: {
-                url: `data:application/pdf;base64,${pdfBase64}`
-              }
-            }
+              image_url: { url }
+            }))
           ]
         }
       ],
@@ -233,7 +283,11 @@ function buildVisionPrompt(dbContext: any): string {
 Você é um assistente especialista em extrair dados de orçamentos e apólices de seguro.
 
 # CONTEXTO
-Você está visualizando um documento de seguro (PDF/imagem). Extraia os dados estruturados conforme as regras abaixo.
+Você está visualizando um documento de seguro em MÚLTIPLAS PÁGINAS (imagens PNG). 
+⚠️ **IMPORTANTE:** Procure os dados em TODAS as páginas fornecidas.
+- Prêmio e comissão geralmente estão nas páginas 2-3
+- Dados do cliente geralmente estão na página 1
+- Analise todas as imagens antes de extrair os dados
 
 # LISTAS DO SISTEMA (FONTE DA VERDADE)
 
