@@ -203,112 +203,263 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     setValue('clientId', newClient.id);
   };
 
-  // ✅ VERSÃO CORRIGIDA E RETROCOMPATÍVEL do handleQuoteDataExtracted
+  // ✅ VERSÃO SUPER MELHORADA com MATCHING FUZZY INTELIGENTE
   const handleQuoteDataExtracted = async (data: ExtractedQuoteData) => {
     console.log('📋 Preenchendo formulário com dados extraídos:', data);
 
-    // ✅ CORRIGIDO: Verificar se matchingDetails existe antes de usar
-    if (data.matchingDetails) {
-      const matchingSummary = [];
-      if (data.matchingDetails.clientMatch !== 'none') matchingSummary.push(`Cliente (${data.matchingDetails.clientMatch})`);
-      if (data.matchingDetails.insurerMatch !== 'none') matchingSummary.push(`Seguradora (${data.matchingDetails.insurerMatch})`);
-      if (data.matchingDetails.ramoMatch !== 'none') matchingSummary.push(`Ramo (${data.matchingDetails.ramoMatch})`);
-
-      if (matchingSummary.length > 0) {
-        toast.success('Dados vinculados automaticamente', {
-          description: `Encontrados na base: ${matchingSummary.join(', ')}`
+    // ============================================
+    // 1. CLIENTE - Matching Inteligente
+    // ============================================
+    if (data.clientName) {
+      console.log('👤 Buscando cliente:', data.clientName);
+      
+      const normalizedSearchName = data.clientName.toLowerCase().trim();
+      
+      // Tentar matching exato primeiro
+      let foundClient = clients.find(c => 
+        c.name.toLowerCase().trim() === normalizedSearchName
+      );
+      
+      // Se não encontrou, tentar matching parcial
+      if (!foundClient) {
+        foundClient = clients.find(c => {
+          const clientName = c.name.toLowerCase().trim();
+          // Match se um contém o outro
+          return clientName.includes(normalizedSearchName) || 
+                 normalizedSearchName.includes(clientName);
         });
       }
-    }
-
-    // 1. ✅ MELHORADO: Cliente (com suporte para versão antiga e nova)
-    if (data.clientId) {
-      // ✅ VERSÃO NOVA: Com ID direto da base
-      setValue('clientId', data.clientId);
-      console.log('✅ Cliente selecionado automaticamente (ID):', data.clientName);
       
-      if (data.matchingDetails) {
-        if (data.matchingDetails.clientMatch === 'exact') {
-          toast.success('Cliente identificado', {
-            description: `${data.clientName} encontrado na base de dados`
-          });
-        } else if (data.matchingDetails.clientMatch === 'partial') {
-          toast.info('Cliente identificado (parcial)', {
-            description: `${data.clientName} - verifique se está correto`
-          });
-        }
+      // Se ainda não encontrou, tentar por palavras-chave
+      if (!foundClient) {
+        const searchWords = normalizedSearchName.split(' ').filter(w => w.length > 2);
+        foundClient = clients.find(c => {
+          const clientWords = c.name.toLowerCase().split(' ');
+          // Match se pelo menos 2 palavras batem
+          const matchCount = searchWords.filter(sw => 
+            clientWords.some(cw => cw.includes(sw) || sw.includes(cw))
+          ).length;
+          return matchCount >= Math.min(2, searchWords.length);
+        });
       }
-    } else if (data.clientName) {
-      // ✅ VERSÃO ANTIGA: Tentar fazer matching manual no frontend
-      console.log('👤 Cliente identificado (sem ID):', data.clientName);
-      
-      // Tentar encontrar cliente pelo nome
-      const foundClient = clients.find(c => 
-        c.name.toLowerCase() === data.clientName!.toLowerCase() ||
-        c.name.toLowerCase().includes(data.clientName!.toLowerCase()) ||
-        data.clientName!.toLowerCase().includes(c.name.toLowerCase())
-      );
       
       if (foundClient) {
         setValue('clientId', foundClient.id);
-        toast.success('Cliente encontrado', {
+        console.log('✅ Cliente encontrado:', foundClient.name);
+        toast.success('Cliente identificado', {
           description: `${foundClient.name} selecionado automaticamente`
         });
       } else {
+        console.warn('⚠️ Cliente não encontrado na base:', data.clientName);
         toast.warning('Cliente não cadastrado', {
           description: `${data.clientName} não foi encontrado. Considere cadastrá-lo primeiro.`
         });
       }
     }
 
-    // 2. Bem Segurado
+    // ============================================
+    // 2. BEM SEGURADO
+    // ============================================
     if (data.insuredItem) {
       setValue('insuredAsset', data.insuredItem);
+      console.log('✅ Bem segurado:', data.insuredItem);
     }
 
-    // 3. Número da Apólice/Orçamento
+    // ============================================
+    // 3. NÚMERO DA APÓLICE
+    // ============================================
     if (data.policyNumber) {
       setValue('policyNumber', data.policyNumber);
+      console.log('✅ Número da apólice:', data.policyNumber);
     }
 
-    // 4. Valor do Prêmio
+    // ============================================
+    // 4. VALOR DO PRÊMIO
+    // ============================================
     if (data.premiumValue) {
       setValue('premiumValue', data.premiumValue);
+      console.log('✅ Prêmio:', data.premiumValue);
     }
 
-    // 5. Taxa de Comissão
+    // ============================================
+    // 5. TAXA DE COMISSÃO
+    // ============================================
     if (data.commissionPercentage) {
       setValue('commissionRate', data.commissionPercentage);
+      console.log('✅ Comissão:', data.commissionPercentage);
+    } else {
+      console.log('⚠️ Comissão não identificada no PDF');
     }
 
-    // 6. Data de Início + Vencimento
+    // ============================================
+    // 6. DATA DE INÍCIO
+    // ============================================
     if (data.startDate) {
       setValue('startDate', data.startDate);
       const expirationDate = addYears(new Date(data.startDate), 1);
       setValue('expirationDate', format(expirationDate, 'yyyy-MM-dd'));
+      console.log('✅ Data de início:', data.startDate);
     }
 
-    // 7. Renovação Automática
+    // ============================================
+    // 7. RENOVAÇÃO AUTOMÁTICA
+    // ============================================
     setValue('automaticRenewal', data.shouldGenerateRenewal);
 
-    // 8. Seguradora (com ID direto da base)
-    if (data.insurerId) {
-      setValue('insuranceCompany', data.insurerId);
-      console.log('✅ Seguradora selecionada automaticamente:', data.insurerName);
+    // ============================================
+    // 8. SEGURADORA - Matching Fuzzy Inteligente
+    // ============================================
+    if (data.insurerName) {
+      console.log('🏢 Buscando seguradora:', data.insurerName);
+      
+      const normalizedInsurerName = data.insurerName.toLowerCase().trim();
+      
+      // Tentar matching exato
+      let foundCompany = companies.find(c => 
+        c.name.toLowerCase().trim() === normalizedInsurerName
+      );
+      
+      // Matching parcial (um contém o outro)
+      if (!foundCompany) {
+        foundCompany = companies.find(c => {
+          const companyName = c.name.toLowerCase().trim();
+          return companyName.includes(normalizedInsurerName) || 
+                 normalizedInsurerName.includes(companyName);
+        });
+      }
+      
+      // Matching por palavras-chave (ex: "Porto Seguro" vs "Porto Seguro Cia")
+      if (!foundCompany) {
+        const searchWords = normalizedInsurerName.split(' ').filter(w => w.length > 2);
+        foundCompany = companies.find(c => {
+          const companyWords = c.name.toLowerCase().split(' ');
+          // Match se todas as palavras principais batem
+          return searchWords.every(sw => 
+            companyWords.some(cw => cw.includes(sw) || sw.includes(cw))
+          );
+        });
+      }
+      
+      if (foundCompany) {
+        setValue('insuranceCompany', foundCompany.id);
+        console.log('✅ Seguradora encontrada:', foundCompany.name);
+        toast.success('Seguradora identificada', {
+          description: `${foundCompany.name} selecionada automaticamente`
+        });
+      } else {
+        console.warn('⚠️ Seguradora não encontrada na base:', data.insurerName);
+        console.log('📋 Seguradoras disponíveis:', companies.map(c => c.name));
+        toast.warning('Seguradora não cadastrada', {
+          description: `${data.insurerName} não foi encontrada. Cadastre-a primeiro.`
+        });
+      }
     }
 
-    // 9. Ramo (aguarda carregamento dos ramos da seguradora)
-    if (data.insuranceLineId && data.insurerId) {
+    // ============================================
+    // 9. RAMO - Matching Fuzzy com delay para carregar ramos da seguradora
+    // ============================================
+    if (data.insuranceLine) {
+      console.log('🏷️ Buscando ramo:', data.insuranceLine);
+      
+      // Aguardar 1.5s para os ramos da seguradora carregarem
       setTimeout(() => {
-        const availableRamo = availableBranches.find(r => r.id === data.insuranceLineId);
-        if (availableRamo) {
-          setValue('type', availableRamo.nome);
-          console.log('✅ Ramo selecionado automaticamente:', availableRamo.nome);
+        console.log('📋 Ramos disponíveis para esta seguradora:', availableBranches.map(r => r.nome));
+        
+        const normalizedRamoName = data.insuranceLine!.toLowerCase().trim();
+        
+        // Tentar matching exato
+        let foundRamo = availableBranches.find(r => 
+          r.nome.toLowerCase().trim() === normalizedRamoName
+        );
+        
+        // Matching parcial
+        if (!foundRamo) {
+          foundRamo = availableBranches.find(r => {
+            const ramoName = r.nome.toLowerCase().trim();
+            return ramoName.includes(normalizedRamoName) || 
+                   normalizedRamoName.includes(ramoName);
+          });
+        }
+        
+        // Matching por palavras-chave
+        if (!foundRamo) {
+          const searchWords = normalizedRamoName.split(' ').filter(w => w.length > 2);
+          foundRamo = availableBranches.find(r => {
+            const ramoWords = r.nome.toLowerCase().split(' ');
+            return searchWords.some(sw => 
+              ramoWords.some(rw => rw.includes(sw) || sw.includes(rw))
+            );
+          });
+        }
+        
+        // Matching especial para abreviações comuns
+        if (!foundRamo) {
+          const abreviacoes: Record<string, string[]> = {
+            'auto': ['automóvel', 'veículo', 'carro'],
+            'residencial': ['residência', 'casa', 'imóvel'],
+            'vida': ['seguro de vida', 'vida individual'],
+            'rc': ['responsabilidade civil', 'resp civil'],
+            'empresarial': ['empresa', 'comercial']
+          };
+          
+          for (const [key, variants] of Object.entries(abreviacoes)) {
+            if (normalizedRamoName.includes(key) || variants.some(v => normalizedRamoName.includes(v))) {
+              foundRamo = availableBranches.find(r => {
+                const ramoLower = r.nome.toLowerCase();
+                return ramoLower.includes(key) || variants.some(v => ramoLower.includes(v));
+              });
+              if (foundRamo) break;
+            }
+          }
+        }
+        
+        if (foundRamo) {
+          setValue('type', foundRamo.nome);
+          console.log('✅ Ramo encontrado:', foundRamo.nome);
+          toast.success('Ramo identificado', {
+            description: `${foundRamo.nome} selecionado automaticamente`
+          });
+        } else {
+          console.warn('⚠️ Ramo não encontrado para esta seguradora:', data.insuranceLine);
+          toast.warning('Ramo não disponível', {
+            description: `${data.insuranceLine} não está cadastrado para esta seguradora`
+          });
         }
       }, 1500);
     }
 
+    // ============================================
+    // 10. VALIDAÇÃO E NAVEGAÇÃO AUTOMÁTICA
+    // ============================================
     await trigger();
+    
+    // Verificar se conseguiu preencher os dados principais
+    setTimeout(() => {
+      const hasClient = !!watch('clientId');
+      const hasInsurer = !!watch('insuranceCompany');
+      
+      if (hasClient && hasInsurer) {
+        if (currentStep === 1) {
+          setCurrentStep(2);
+          toast.success('Formulário preenchido!', {
+            description: 'Dados principais identificados. Revise e continue.'
+          });
+        }
+      } else {
+        // Avisar o que faltou
+        const missing = [];
+        if (!hasClient) missing.push('Cliente');
+        if (!hasInsurer) missing.push('Seguradora');
+        
+        if (missing.length > 0) {
+          toast.warning('Atenção', {
+            description: `Não foi possível identificar: ${missing.join(', ')}. Selecione manualmente.`
+          });
+        }
+      }
+    }, 2000);
+
+    console.log('✅ Processamento concluído');
   };
 
   const renderStepContent = () => {

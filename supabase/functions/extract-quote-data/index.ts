@@ -238,7 +238,10 @@ Ao analisar 'clientName', 'insurerName' e 'insuranceLine', você DEVE seguir est
    - \`true\` se o documento indicar "Seguro Novo" ou "Renovação".
    - \`false\` se indicar "Endosso" ou não especificar.
 
-9. **startDate**: Data de início de vigência (formato: YYYY-MM-DD).
+9. **startDate**: Data de **INÍCIO DE VIGÊNCIA** do seguro.
+   - ⚠️ **CRÍTICO:** Procure por "Vigência:", "Início de Vigência:", "Das 24 horas do dia" ou "Válido a partir de"
+   - **NÃO** confunda com "Data de Emissão", "Data de Proposta" ou "Data do Orçamento"
+   - Formato: YYYY-MM-DD
 
 # FORMATO DE SAÍDA
 Retorne APENAS um objeto JSON válido. Não inclua explicações. Se um campo não for encontrado, use \`null\`.
