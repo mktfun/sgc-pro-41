@@ -1,6 +1,6 @@
 // ============================================
 // EDGE FUNCTION: extract-quote-data
-// Versão FINAL - Processa TODAS as páginas do PDF
+// Versão CORRIGIDA - Com fallback robusto
 // ============================================
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -25,15 +25,15 @@ serve(async (req) => {
 
     console.log('📄 Processando PDF com Gemini Vision:', fileUrl);
 
-    // 1️⃣ CONVERTER TODAS AS PÁGINAS DO PDF PARA IMAGENS
+    // 1️⃣ CONVERTER PDF PARA IMAGENS (com fallback)
     const imageUrls = await convertPdfToImages(fileUrl);
-    console.log(`✅ PDF convertido: ${imageUrls.length} páginas`);
+    console.log(`✅ PDF convertido: ${imageUrls.length} página(s)`);
 
     // 2️⃣ BUSCAR CONTEXTO DO BANCO
     const dbContext = await fetchDatabaseContext();
     console.log(`✅ Contexto: ${dbContext.ramos.length} ramos, ${dbContext.companies.length} seguradoras, ${dbContext.clients.length} clientes`);
 
-    // 3️⃣ EXTRAIR DADOS DE TODAS AS PÁGINAS COM GEMINI VISION
+    // 3️⃣ EXTRAIR DADOS COM GEMINI VISION
     const extractedData = await extractDataWithGeminiVision(imageUrls, dbContext);
     console.log('✅ Dados extraídos:', extractedData);
 
@@ -63,9 +63,52 @@ serve(async (req) => {
 });
 
 // ============================================
-// CONVERTER TODAS AS PÁGINAS DO PDF PARA IMAGENS
+// CONVERTER PDF PARA IMAGENS (COM FALLBACK)
 // ============================================
 async function convertPdfToImages(pdfUrl: string): Promise<string[]> {
+  try {
+    console.log('🔄 Tentando converter TODAS as páginas...');
+    
+    const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': Deno.env.get('PDF_PARSER_API_KEY') || '',
+      },
+      body: JSON.stringify({
+        url: pdfUrl,
+        pages: '-1', // -1 = TODAS AS PÁGINAS
+        async: false,
+      }),
+    });
+
+    if (!response.ok) {
+      console.log('⚠️ Falha ao converter todas as páginas, usando fallback...');
+      return await convertFirstPageOnly(pdfUrl);
+    }
+
+    const result = await response.json();
+    console.log('📊 Resposta PDF.co:', result);
+    
+    if (!result.urls || result.urls.length === 0) {
+      console.log('⚠️ Nenhuma imagem gerada, usando fallback...');
+      return await convertFirstPageOnly(pdfUrl);
+    }
+
+    console.log(`✅ ${result.urls.length} página(s) convertida(s)`);
+    return result.urls;
+    
+  } catch (error) {
+    console.error('⚠️ Erro na conversão completa:', error);
+    console.log('🔄 Tentando fallback (primeira página)...');
+    return await convertFirstPageOnly(pdfUrl);
+  }
+}
+
+// ============================================
+// FALLBACK: CONVERTER APENAS PRIMEIRA PÁGINA
+// ============================================
+async function convertFirstPageOnly(pdfUrl: string): Promise<string[]> {
   const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
     method: 'POST',
     headers: {
@@ -74,22 +117,23 @@ async function convertPdfToImages(pdfUrl: string): Promise<string[]> {
     },
     body: JSON.stringify({
       url: pdfUrl,
-      pages: '-1', // -1 = TODAS AS PÁGINAS
+      pages: '0', // Apenas primeira página
       async: false,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`Erro ao converter PDF: ${response.statusText}`);
+    throw new Error(`Erro ao converter PDF (fallback): ${response.statusText}`);
   }
 
   const result = await response.json();
   
   if (!result.urls || result.urls.length === 0) {
-    throw new Error('Nenhuma imagem gerada');
+    throw new Error('Nenhuma imagem gerada (fallback)');
   }
 
-  return result.urls; // Array de URLs das imagens
+  console.log('✅ Primeira página convertida (fallback)');
+  return result.urls;
 }
 
 // ============================================
