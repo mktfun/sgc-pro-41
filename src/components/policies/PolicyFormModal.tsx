@@ -294,7 +294,7 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     // ============================================
     // 6. DATA DE INÍCIO
     // ============================================
-    if (data.startDate) {
+    if (data.startDate && data.startDate !== 'null' && data.startDate !== 'undefined' && !isNaN(new Date(data.startDate).getTime())) {
       setValue('startDate', data.startDate);
       const expirationDate = addYears(new Date(data.startDate), 1);
       setValue('expirationDate', format(expirationDate, 'yyyy-MM-dd'));
