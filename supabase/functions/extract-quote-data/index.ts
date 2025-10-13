@@ -239,8 +239,12 @@ Ao analisar 'clientName', 'insurerName' e 'insuranceLine', você DEVE seguir est
    - \`false\` se indicar "Endosso" ou não especificar.
 
 9. **startDate**: Data de **INÍCIO DE VIGÊNCIA** do seguro.
-   - ⚠️ **CRÍTICO:** Procure por "Vigência:", "Início de Vigência:", "Das 24 horas do dia" ou "Válido a partir de"
-   - **NÃO** confunda com "Data de Emissão", "Data de Proposta" ou "Data do Orçamento"
+   - ⚠️ **CRÍTICO:** Procure especificamente por:
+     * "Vigência:" ou "Início de Vigência:"
+     * "Das 24 horas do dia" seguido de uma data
+     * "Válido a partir de"
+   - **NÃO** use "Data de Emissão", "Data de Proposta" ou "Data do Orçamento"
+   - A vigência é quando o seguro começa a valer (geralmente uma data futura)
    - Formato: YYYY-MM-DD
 
 # FORMATO DE SAÍDA
