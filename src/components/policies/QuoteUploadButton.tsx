@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileUp, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { FileUp, Loader2, CheckCircle2, XCircle, User, Building, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -20,14 +20,22 @@ const sanitizeFilename = (filename: string): string => {
 
 export interface ExtractedQuoteData {
   clientName: string | null;
+  clientId: string | null;
   insuredItem: string | null;
   insurerName: string | null;
+  insurerId: string | null;
   insuranceLine: string | null;
+  insuranceLineId: string | null;
   policyNumber: string | null;
   premiumValue: number | null;
   commissionPercentage: number | null;
   shouldGenerateRenewal: boolean;
   startDate: string | null;
+  matchingDetails: {
+    clientMatch: 'exact' | 'partial' | 'none';
+    insurerMatch: 'exact' | 'partial' | 'none';
+    ramoMatch: 'exact' | 'partial' | 'none';
+  };
 }
 
 interface QuoteUploadButtonProps {
@@ -38,6 +46,7 @@ interface QuoteUploadButtonProps {
 export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [matchingResults, setMatchingResults] = useState<ExtractedQuoteData['matchingDetails'] | null>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -57,6 +66,7 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
 
     setIsProcessing(true);
     setStatus('idle');
+    setMatchingResults(null);
 
     try {
       console.log('📤 Fazendo upload do PDF:', file.name);
@@ -107,16 +117,25 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
 
       console.log('✅ Dados extraídos:', data.data);
 
+      // Armazenar resultados de matching para exibir feedback
+      setMatchingResults(data.data.matchingDetails);
+
       setStatus('success');
+      
+      // Toast com detalhes de matching
+      const matchSummary = getMatchingSummary(data.data.matchingDetails);
       toast.success('Orçamento processado com sucesso!', {
-        description: 'Os dados foram extraídos e o formulário será preenchido automaticamente.'
+        description: `Dados extraídos e vinculados. ${matchSummary}`
       });
 
       // Callback com os dados extraídos
       onDataExtracted(data.data);
 
-      // Reset status após 3 segundos
-      setTimeout(() => setStatus('idle'), 3000);
+      // Reset status após 5 segundos (mais tempo para ver o feedback)
+      setTimeout(() => {
+        setStatus('idle');
+        setMatchingResults(null);
+      }, 5000);
 
     } catch (error) {
       console.error('❌ Erro no upload:', error);
@@ -136,6 +155,16 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
     }
   };
 
+  // Função para gerar resumo de matching
+  const getMatchingSummary = (matching: ExtractedQuoteData['matchingDetails']): string => {
+    const matches = [];
+    if (matching.clientMatch !== 'none') matches.push('Cliente');
+    if (matching.insurerMatch !== 'none') matches.push('Seguradora');
+    if (matching.ramoMatch !== 'none') matches.push('Ramo');
+    
+    if (matches.length === 0) return 'Nenhuma vinculação automática encontrada.';
+    return `Vinculados: ${matches.join(', ')}.`;
+  };
 
   const getButtonIcon = () => {
     if (isProcessing) return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -185,8 +214,43 @@ export function QuoteUploadButton({ onDataExtracted, disabled }: QuoteUploadButt
       
       {isProcessing && (
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Extraindo dados com IA... Isso pode levar alguns segundos.
+          Extraindo dados com IA e vinculando com sua base... Isso pode levar alguns segundos.
         </p>
+      )}
+
+      {/* Exibir badges de matching quando processamento for bem-sucedido */}
+      {status === 'success' && matchingResults && (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {matchingResults.clientMatch !== 'none' && (
+              <div className="flex items-center gap-1 text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded">
+                <User className="h-3 w-3" />
+                Cliente {matchingResults.clientMatch === 'exact' ? '✓' : '~'}
+              </div>
+            )}
+            
+            {matchingResults.insurerMatch !== 'none' && (
+              <div className="flex items-center gap-1 text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+                <Building className="h-3 w-3" />
+                Seguradora {matchingResults.insurerMatch === 'exact' ? '✓' : '~'}
+              </div>
+            )}
+            
+            {matchingResults.ramoMatch !== 'none' && (
+              <div className="flex items-center gap-1 text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">
+                <Tag className="h-3 w-3" />
+                Ramo {matchingResults.ramoMatch === 'exact' ? '✓' : '~'}
+              </div>
+            )}
+          </div>
+          
+          <div className="p-2 bg-green-500/10 border border-green-500/20 rounded text-xs">
+            <p className="text-green-300 font-medium">✓ Dados extraídos e vinculados automaticamente</p>
+            <p className="text-muted-foreground mt-1">
+              Revise os campos preenchidos antes de salvar a apólice.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

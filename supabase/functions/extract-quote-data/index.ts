@@ -9,14 +9,22 @@ const corsHeaders = {
 
 interface ExtractedQuoteData {
   clientName: string | null;
+  clientId: string | null;
   insuredItem: string | null;
   insurerName: string | null;
+  insurerId: string | null;
   insuranceLine: string | null;
+  insuranceLineId: string | null;
   policyNumber: string | null;
   premiumValue: number | null;
   commissionPercentage: number | null;
   shouldGenerateRenewal: boolean;
   startDate: string | null;
+  matchingDetails: {
+    clientMatch: 'exact' | 'partial' | 'none';
+    insurerMatch: 'exact' | 'partial' | 'none';
+    ramoMatch: 'exact' | 'partial' | 'none';
+  };
 }
 
 serve(async (req) => {
@@ -33,7 +41,6 @@ serve(async (req) => {
 
     console.log('📄 Processando arquivo da URL:', fileUrl);
 
-    // 1️⃣ EXTRAIR TEXTO DO PDF
     const pdfText = await extractTextFromPDF(fileUrl);
     
     console.log(`📊 Texto extraído: ${pdfText.length} caracteres`);
@@ -44,22 +51,21 @@ serve(async (req) => {
 
     console.log('✅ Texto extraído do PDF (primeiros 500 chars):', pdfText.substring(0, 500) + '...');
 
-    // 2️⃣ BUSCAR CONTEXTO DO BANCO DE DADOS (RAG)
     const dbContext = await fetchDatabaseContext();
-
-    // 3️⃣ CHAMAR GEMINI COM CONTEXTO RAG
     const extractedData = await extractDataWithAI(pdfText, dbContext);
+    const matchedData = await performIntelligentMatching(extractedData, dbContext);
 
-    console.log('✅ Dados extraídos com sucesso:', extractedData);
+    console.log('✅ Dados extraídos e vinculados com sucesso:', matchedData);
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: extractedData,
+        data: matchedData,
         metadata: {
           textLength: pdfText.length,
           availableRamos: dbContext.ramos.length,
-          availableCompanies: dbContext.companies.length
+          availableCompanies: dbContext.companies.length,
+          availableClients: dbContext.clients.length
         }
       }),
       {
@@ -83,10 +89,6 @@ serve(async (req) => {
   }
 });
 
-/**
- * Extrai texto do PDF usando PDF.co com OCR automático
- * Suporta PDFs complexos e escaneados
- */
 async function extractTextFromPDF(fileUrl: string): Promise<string> {
   const PDF_PARSER_API_KEY = Deno.env.get('PDF_PARSER_API_KEY');
   
@@ -104,9 +106,9 @@ async function extractTextFromPDF(fileUrl: string): Promise<string> {
         'x-api-key': PDF_PARSER_API_KEY
       },
       body: JSON.stringify({
-        url: fileUrl, // ✅ URL pública do Storage
-        inline: true, // Receber resposta imediata
-        profiles: "{ 'ocrMode': 'auto' }" // Ativar OCR automático para PDFs escaneados
+        url: fileUrl,
+        inline: true,
+        profiles: "{ 'ocrMode': 'auto' }"
       })
     });
 
@@ -134,21 +136,18 @@ async function extractTextFromPDF(fileUrl: string): Promise<string> {
   }
 }
 
-
-/**
- * Busca contexto do banco de dados (Ramos e Seguradoras)
- */
 async function fetchDatabaseContext() {
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 
-  console.log('🔍 Buscando contexto do banco de dados...');
+  console.log('🔍 Buscando contexto completo do banco de dados...');
 
-  const [ramosResult, companiesResult] = await Promise.all([
+  const [ramosResult, companiesResult, clientsResult] = await Promise.all([
     supabaseAdmin.from('ramos').select('id, nome'),
-    supabaseAdmin.from('companies').select('id, name')
+    supabaseAdmin.from('companies').select('id, name'),
+    supabaseAdmin.from('clientes').select('id, name, cpf_cnpj, phone, email')
   ]);
 
   if (ramosResult.error) {
@@ -161,30 +160,37 @@ async function fetchDatabaseContext() {
     throw new Error('Falha ao buscar seguradoras do banco de dados');
   }
 
-  console.log(`✅ Contexto carregado: ${ramosResult.data.length} ramos, ${companiesResult.data.length} seguradoras`);
+  if (clientsResult.error) {
+    console.error('❌ Erro ao buscar clientes:', clientsResult.error);
+    throw new Error('Falha ao buscar clientes do banco de dados');
+  }
+
+  console.log(`✅ Contexto carregado: ${ramosResult.data.length} ramos, ${companiesResult.data.length} seguradoras, ${clientsResult.data.length} clientes`);
 
   return {
     ramos: ramosResult.data || [],
-    companies: companiesResult.data || []
+    companies: companiesResult.data || [],
+    clients: clientsResult.data || []
   };
 }
 
-/**
- * Gera prompt RAG v3.0 com contexto do banco de dados
- */
-function buildRAGPrompt(pdfText: string, ramos: any[], companies: any[]): string {
+function buildRAGPrompt(pdfText: string, ramos: any[], companies: any[], clients: any[]): string {
   const ramosList = ramos.map(r => r.nome).join('", "');
   const companiesList = companies.map(c => c.name).join('", "');
+  const clientsList = clients.slice(0, 50).map(c => `${c.name} (${c.cpf_cnpj || 'sem documento'})`).join('", "');
 
   return `# PERSONA
 Aja como um assistente de IA sênior, especialista em conciliar documentos de seguros com sistemas de gestão de corretoras.
 
 # CONTEXTO
-Você recebeu um texto extraído de um orçamento de seguro (PDF) e duas listas de referência: "Ramos Cadastrados" e "Seguradoras Cadastradas". Essas listas são a **FONTE DA VERDADE**. O texto do PDF é apenas uma pista.
+Você recebeu um texto extraído de um orçamento de seguro (PDF) e três listas de referência: "Clientes Cadastrados", "Ramos Cadastrados" e "Seguradoras Cadastradas". Essas listas são a **FONTE DA VERDADE**. O texto do PDF é apenas uma pista.
 
-Sua tarefa principal é analisar o texto do PDF e, para os campos 'insurerName' e 'insuranceLine', encontrar a correspondência **MAIS PRÓXIMA** dentro das listas fornecidas e retornar o valor **EXATO** da lista.
+Sua tarefa principal é analisar o texto do PDF e, para os campos 'clientName', 'insurerName' e 'insuranceLine', encontrar a correspondência **MAIS PRÓXIMA** dentro das listas fornecidas e retornar o valor **EXATO** da lista.
 
 # LISTAS DO SISTEMA (FONTE DA VERDADE)
+
+**Clientes Cadastrados (primeiros 50):**
+["${clientsList}"]
 
 **Ramos Cadastrados:**
 ["${ramosList}"]
@@ -194,50 +200,45 @@ Sua tarefa principal é analisar o texto do PDF e, para os campos 'insurerName' 
 
 # REGRAS DE MATCHING (CRÍTICO)
 
-Ao analisar 'insurerName' e 'insuranceLine', você DEVE seguir estas regras para encontrar o valor correto na lista:
+Ao analisar 'clientName', 'insurerName' e 'insuranceLine', você DEVE seguir estas regras para encontrar o valor correto na lista:
 
 1. **PRIORIDADE MÁXIMA:** A sua resposta para esses campos DEVE ser um dos valores EXATOS das listas acima.
-2. **ABREVIAÇÕES:** Se o PDF diz "Responsabilidade Civil Profissional" e a lista tem "RC Profissional", sua resposta DEVE ser "RC Profissional".
-3. **NOMES PARCIAIS:** Se o PDF diz "Porto Seguro Companhia de Seguros Gerais" e a lista tem "Porto Seguro", sua resposta DEVE ser "Porto Seguro". Se a lista tiver apenas "Porto", sua resposta DEVE ser "Porto".
-4. **IGNORAR CAPITALIZAÇÃO:** O match deve ser feito ignorando se as letras são maiúsculas ou minúsculas.
+2. **MATCHING DE CLIENTE:** 
+   - Se o PDF diz "João Silva" e a lista tem "João da Silva", sua resposta DEVE ser "João da Silva".
+   - Se o PDF diz "Empresa ABC LTDA" e a lista tem "ABC Comércio LTDA", sua resposta DEVE ser "ABC Comércio LTDA".
+   - Considere também documentos (CPF/CNPJ) se mencionados no PDF.
+3. **ABREVIAÇÕES:** Se o PDF diz "Responsabilidade Civil Profissional" e a lista tem "RC Profissional", sua resposta DEVE ser "RC Profissional".
+4. **NOMES PARCIAIS:** Se o PDF diz "Porto Seguro Companhia de Seguros Gerais" e a lista tem "Porto Seguro", sua resposta DEVE ser "Porto Seguro".
+5. **IGNORAR CAPITALIZAÇÃO:** O match deve ser feito ignorando se as letras são maiúsculas ou minúsculas.
 
 ⚠️ Se, e somente se, NENHUMA correspondência razoável for encontrada nas listas, retorne \`null\`.
 
 # CAMPOS PARA EXTRAIR
 
-1. **clientName**: Nome do Segurado (pessoa ou empresa). Fique atento a campos como "Segurado:", "Proponente:" ou "Cliente:".
+1. **clientName**: Nome do Segurado EXATO da lista "Clientes Cadastrados".
+   - Procure por campos como "Segurado:", "Proponente:" ou "Cliente:".
+   - ⚠️ **IMPORTANTE: Retorne o nome EXATO da lista "Clientes Cadastrados".**
 
-2. **insuredItem**: O bem segurado.
-   - Para Automóvel: "Honda Civic LXR 2023"
-   - Para Residencial: "Residência - Rua X, 123"
-   - Para RC Profissional: "Médico" ou "Advogado" (a profissão)
+2. **insuredItem**: O bem segurado com DETALHES.
+   - Para Automóvel: "Honda Civic LXR 2023 - Placa ABC1234"
+   - Para Residencial: "Residência - Rua X, 123, Bairro Y"
+   - Para RC Profissional: "Médico Cardiologista" ou "Advogado Tributarista"
 
-3. **insurerName**: Nome da seguradora.
-   - ⚠️ **IMPORTANTE: Retorne o nome EXATO da lista "Seguradoras Cadastradas".**
-   - Se o PDF mencionar "Porto Seguro Companhia" e na lista tiver "Porto Seguro", retorne "Porto Seguro".
-   - Se não encontrar correspondência, retorne \`null\`.
+3. **insurerName**: Nome da seguradora EXATO da lista "Seguradoras Cadastradas".
 
-4. **insuranceLine**: Ramo do seguro.
-   - ⚠️ **IMPORTANTE: Retorne o nome EXATO da lista "Ramos Cadastrados".**
-   - Se o PDF mencionar "Responsabilidade Civil Profissional" e na lista tiver "RC Profissional", retorne "RC Profissional".
-   - Se o PDF mencionar "Seguro de Automóvel" e na lista tiver "Auto", retorne "Auto".
-   - Se não encontrar correspondência, retorne \`null\`.
+4. **insuranceLine**: Ramo do seguro EXATO da lista "Ramos Cadastrados".
 
 5. **policyNumber**: Número completo do orçamento ou proposta.
 
-6. **premiumValue**: Valor do **prêmio líquido**.
-   - ⚠️ IGNORE o prêmio bruto. Se o documento mencionar ambos, extraia APENAS o líquido.
-   - Retorne apenas o número, sem "R$".
+6. **premiumValue**: Valor do **prêmio líquido** (apenas número, sem "R$").
 
-7. **commissionPercentage**: Taxa de comissão em porcentagem.
-   - Retorne apenas o número (ex: 20, não "20%").
+7. **commissionPercentage**: Taxa de comissão em porcentagem (apenas número).
 
 8. **shouldGenerateRenewal**: 
-   - Retorne \`true\` se o documento indicar "Seguro Novo" ou "Renovação".
-   - Retorne \`false\` se indicar "Endosso" ou não especificar.
+   - \`true\` se o documento indicar "Seguro Novo" ou "Renovação".
+   - \`false\` se indicar "Endosso" ou não especificar.
 
-9. **startDate**: Data de início de vigência.
-   - Formato: YYYY-MM-DD
+9. **startDate**: Data de início de vigência (formato: YYYY-MM-DD).
 
 # FORMATO DE SAÍDA
 Retorne APENAS um objeto JSON válido. Não inclua explicações. Se um campo não for encontrado, use \`null\`.
@@ -248,20 +249,17 @@ ${pdfText.substring(0, 8000)}
 ${pdfText.length > 8000 ? '\n[TEXTO TRUNCADO - PDF MUITO LONGO]' : ''}`;
 }
 
-/**
- * Usa Gemini via Lovable AI Gateway para extrair dados estruturados com contexto RAG
- */
 async function extractDataWithAI(
   pdfText: string, 
-  dbContext: { ramos: any[], companies: any[] }
-): Promise<ExtractedQuoteData> {
+  dbContext: { ramos: any[], companies: any[], clients: any[] }
+): Promise<Partial<ExtractedQuoteData>> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!LOVABLE_API_KEY) {
     throw new Error('LOVABLE_API_KEY não configurada');
   }
 
-  const ragPrompt = buildRAGPrompt(pdfText, dbContext.ramos, dbContext.companies);
+  const ragPrompt = buildRAGPrompt(pdfText, dbContext.ramos, dbContext.companies, dbContext.clients);
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -286,12 +284,12 @@ async function extractDataWithAI(
                 properties: {
                   clientName: {
                     type: 'string',
-                    description: 'Nome completo do segurado/cliente',
+                    description: 'Nome EXATO do cliente da lista fornecida',
                     nullable: true
                   },
                   insuredItem: {
                     type: 'string',
-                    description: 'Bem ou objeto segurado',
+                    description: 'Bem ou objeto segurado com detalhes',
                     nullable: true
                   },
                   insurerName: {
@@ -356,7 +354,6 @@ async function extractDataWithAI(
     const result = await response.json();
     console.log('🤖 Resposta do Gemini:', JSON.stringify(result, null, 2));
 
-    // Extrair dados do tool call
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function?.name !== 'extract_quote_fields') {
       throw new Error('Gemini não retornou os dados esperados');
@@ -380,4 +377,113 @@ async function extractDataWithAI(
     console.error('❌ Erro ao chamar Gemini:', error);
     throw error;
   }
+}
+
+async function performIntelligentMatching(
+  extractedData: Partial<ExtractedQuoteData>, 
+  dbContext: { ramos: any[], companies: any[], clients: any[] }
+): Promise<ExtractedQuoteData> {
+  console.log('🔍 Iniciando matching inteligente...');
+
+  let clientId = null;
+  let clientMatch: 'exact' | 'partial' | 'none' = 'none';
+  let insurerId = null;
+  let insurerMatch: 'exact' | 'partial' | 'none' = 'none';
+  let insuranceLineId = null;
+  let ramoMatch: 'exact' | 'partial' | 'none' = 'none';
+
+  if (extractedData.clientName) {
+    const exactClient = dbContext.clients.find(c => 
+      c.name.toLowerCase() === extractedData.clientName!.toLowerCase()
+    );
+    
+    if (exactClient) {
+      clientId = exactClient.id;
+      clientMatch = 'exact';
+      console.log('✅ Cliente encontrado (exact):', exactClient.name);
+    } else {
+      const partialClient = dbContext.clients.find(c => 
+        c.name.toLowerCase().includes(extractedData.clientName!.toLowerCase()) ||
+        extractedData.clientName!.toLowerCase().includes(c.name.toLowerCase())
+      );
+      
+      if (partialClient) {
+        clientId = partialClient.id;
+        clientMatch = 'partial';
+        console.log('⚠️ Cliente encontrado (partial):', partialClient.name);
+      } else {
+        console.log('❌ Cliente não encontrado:', extractedData.clientName);
+      }
+    }
+  }
+
+  if (extractedData.insurerName) {
+    const exactInsurer = dbContext.companies.find(c => 
+      c.name.toLowerCase() === extractedData.insurerName!.toLowerCase()
+    );
+    
+    if (exactInsurer) {
+      insurerId = exactInsurer.id;
+      insurerMatch = 'exact';
+      console.log('✅ Seguradora encontrada (exact):', exactInsurer.name);
+    } else {
+      const partialInsurer = dbContext.companies.find(c => 
+        c.name.toLowerCase().includes(extractedData.insurerName!.toLowerCase()) ||
+        extractedData.insurerName!.toLowerCase().includes(c.name.toLowerCase())
+      );
+      
+      if (partialInsurer) {
+        insurerId = partialInsurer.id;
+        insurerMatch = 'partial';
+        console.log('⚠️ Seguradora encontrada (partial):', partialInsurer.name);
+      } else {
+        console.log('❌ Seguradora não encontrada:', extractedData.insurerName);
+      }
+    }
+  }
+
+  if (extractedData.insuranceLine) {
+    const exactRamo = dbContext.ramos.find(r => 
+      r.nome.toLowerCase() === extractedData.insuranceLine!.toLowerCase()
+    );
+    
+    if (exactRamo) {
+      insuranceLineId = exactRamo.id;
+      ramoMatch = 'exact';
+      console.log('✅ Ramo encontrado (exact):', exactRamo.nome);
+    } else {
+      const partialRamo = dbContext.ramos.find(r => 
+        r.nome.toLowerCase().includes(extractedData.insuranceLine!.toLowerCase()) ||
+        extractedData.insuranceLine!.toLowerCase().includes(r.nome.toLowerCase())
+      );
+      
+      if (partialRamo) {
+        insuranceLineId = partialRamo.id;
+        ramoMatch = 'partial';
+        console.log('⚠️ Ramo encontrado (partial):', partialRamo.nome);
+      } else {
+        console.log('❌ Ramo não encontrado:', extractedData.insuranceLine);
+      }
+    }
+  }
+
+  return {
+    clientName: extractedData.clientName || null,
+    clientId,
+    insuredItem: extractedData.insuredItem || null,
+    insurerName: extractedData.insurerName || null,
+    insurerId,
+    insuranceLine: extractedData.insuranceLine || null,
+    insuranceLineId,
+    policyNumber: extractedData.policyNumber || null,
+    premiumValue: extractedData.premiumValue || null,
+    commissionPercentage: extractedData.commissionPercentage || null,
+    shouldGenerateRenewal: extractedData.shouldGenerateRenewal || false,
+    startDate: extractedData.startDate || null,
+    matchingDetails: {
+      clientMatch,
+      insurerMatch,
+      ramoMatch
+    }
+  };
 }

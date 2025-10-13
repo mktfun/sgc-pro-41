@@ -202,14 +202,19 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     setValue('clientId', newClient.id);
   };
 
-  // Handler para dados extraídos do PDF com RAG v3.0
+  // Handler para dados extraídos do PDF com RAG v4.0 + Matching Inteligente
   const handleQuoteDataExtracted = async (data: ExtractedQuoteData) => {
-    console.log('📋 Preenchendo formulário com dados RAG:', data);
+    console.log('📋 Preenchendo formulário com dados RAG v4.0:', data);
 
-    // 1. Nome do Cliente (novo campo - por enquanto só logamos)
-    if (data.clientName) {
-      console.log('👤 Cliente identificado:', data.clientName);
-      // Futuramente: buscar cliente pelo nome ou criar campo no form
+    // 1. Cliente (com ID direto da base)
+    if (data.clientId) {
+      setValue('clientId', data.clientId);
+      console.log('✅ Cliente selecionado automaticamente:', data.clientName);
+      toast({
+        title: data.matchingDetails.clientMatch === 'exact' ? "Cliente identificado" : "Cliente identificado (parcial)",
+        description: `${data.clientName} ${data.matchingDetails.clientMatch === 'partial' ? '- verifique se está correto' : 'encontrado na base'}`,
+        duration: 3000,
+      });
     }
 
     // 2. Bem Segurado
@@ -242,33 +247,23 @@ export function PolicyFormModal({ policy, isEditing = false, onClose, onPolicyAd
     // 7. Renovação Automática
     setValue('automaticRenewal', data.shouldGenerateRenewal);
 
-    // 8. Mapear Seguradora (MATCH EXATO - RAG garante)
-    if (data.insurerName) {
-      const company = companies.find(c => c.name === data.insurerName);
-      
-      if (company) {
-        setValue('insuranceCompany', company.id);
-        console.log('✅ Seguradora mapeada (RAG):', company.name);
-      } else {
-        console.warn('⚠️ Seguradora não encontrada (RAG falhou?):', data.insurerName);
-      }
+    // 8. Seguradora (com ID direto da base)
+    if (data.insurerId) {
+      setValue('insuranceCompany', data.insurerId);
+      console.log('✅ Seguradora selecionada automaticamente:', data.insurerName);
     }
 
-    // 9. Mapear Ramo (MATCH EXATO - RAG garante)
-    if (data.insuranceLine) {
+    // 9. Ramo (aguarda carregamento dos ramos da seguradora)
+    if (data.insuranceLineId && data.insurerId) {
       setTimeout(() => {
-        const ramo = availableBranches.find(r => r.nome === data.insuranceLine);
-        
-        if (ramo) {
-          setValue('type', ramo.nome);
-          console.log('✅ Ramo mapeado (RAG):', ramo.nome);
-        } else {
-          console.warn('⚠️ Ramo não encontrado (RAG falhou?):', data.insuranceLine);
+        const availableRamo = availableBranches.find(r => r.id === data.insuranceLineId);
+        if (availableRamo) {
+          setValue('type', availableRamo.nome);
+          console.log('✅ Ramo selecionado automaticamente:', availableRamo.nome);
         }
-      }, 1000);
+      }, 1500);
     }
 
-    // Validar os campos preenchidos
     await trigger();
   };
 
