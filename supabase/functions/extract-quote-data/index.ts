@@ -1,4 +1,8 @@
-// ✅ VERSÃO FINAL: Extração com Gemini 2.5 Flash Vision + Conversão PDF→Imagem
+// ============================================
+// EDGE FUNCTION: extract-quote-data
+// Versão FINAL - Processa TODAS as páginas do PDF
+// ============================================
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -21,16 +25,16 @@ serve(async (req) => {
 
     console.log('📄 Processando PDF com Gemini Vision:', fileUrl);
 
-    // 1️⃣ CONVERTER PDF PARA IMAGEM usando PDF.co
-    const imageUrl = await convertPdfToImage(fileUrl);
-    console.log('✅ PDF convertido para imagem:', imageUrl);
+    // 1️⃣ CONVERTER TODAS AS PÁGINAS DO PDF PARA IMAGENS
+    const imageUrls = await convertPdfToImages(fileUrl);
+    console.log(`✅ PDF convertido: ${imageUrls.length} páginas`);
 
     // 2️⃣ BUSCAR CONTEXTO DO BANCO
     const dbContext = await fetchDatabaseContext();
     console.log(`✅ Contexto: ${dbContext.ramos.length} ramos, ${dbContext.companies.length} seguradoras, ${dbContext.clients.length} clientes`);
 
-    // 3️⃣ EXTRAIR DADOS COM GEMINI VISION
-    const extractedData = await extractDataWithGeminiVision(imageUrl, dbContext);
+    // 3️⃣ EXTRAIR DADOS DE TODAS AS PÁGINAS COM GEMINI VISION
+    const extractedData = await extractDataWithGeminiVision(imageUrls, dbContext);
     console.log('✅ Dados extraídos:', extractedData);
 
     return new Response(
@@ -59,9 +63,9 @@ serve(async (req) => {
 });
 
 // ============================================
-// CONVERTER PDF PARA IMAGEM (PDF.co)
+// CONVERTER TODAS AS PÁGINAS DO PDF PARA IMAGENS
 // ============================================
-async function convertPdfToImage(pdfUrl: string): Promise<string> {
+async function convertPdfToImages(pdfUrl: string): Promise<string[]> {
   const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
     method: 'POST',
     headers: {
@@ -70,7 +74,7 @@ async function convertPdfToImage(pdfUrl: string): Promise<string> {
     },
     body: JSON.stringify({
       url: pdfUrl,
-      pages: '0', // Apenas primeira página
+      pages: '-1', // -1 = TODAS AS PÁGINAS
       async: false,
     }),
   });
@@ -85,7 +89,7 @@ async function convertPdfToImage(pdfUrl: string): Promise<string> {
     throw new Error('Nenhuma imagem gerada');
   }
 
-  return result.urls[0]; // URL da primeira página como imagem
+  return result.urls; // Array de URLs das imagens
 }
 
 // ============================================
@@ -115,9 +119,9 @@ async function fetchDatabaseContext() {
 }
 
 // ============================================
-// EXTRAIR DADOS COM GEMINI 2.5 FLASH VISION
+// EXTRAIR DADOS DE TODAS AS PÁGINAS COM GEMINI VISION
 // ============================================
-async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
+async function extractDataWithGeminiVision(imageUrls: string[], dbContext: any) {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
   if (!LOVABLE_API_KEY) {
@@ -127,7 +131,7 @@ async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
 
   const prompt = buildVisionPrompt(dbContext);
 
-  console.log('🤖 Chamando Gemini 2.5 Flash Vision...');
+  console.log(`🤖 Chamando Gemini 2.5 Flash Vision com ${imageUrls.length} páginas...`);
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -145,12 +149,11 @@ async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
               type: 'text',
               text: prompt,
             },
-            {
+            // Incluir TODAS as imagens/páginas
+            ...imageUrls.map(url => ({
               type: 'image_url',
-              image_url: {
-                url: imageUrl, // URL da imagem PNG
-              },
-            },
+              image_url: { url },
+            })),
           ],
         },
       ],
@@ -194,14 +197,16 @@ async function extractDataWithGeminiVision(imageUrl: string, dbContext: any) {
 }
 
 // ============================================
-// PROMPT PARA GEMINI VISION
+// PROMPT PARA GEMINI VISION - TODAS AS PÁGINAS
 // ============================================
 function buildVisionPrompt(dbContext: any) {
   const ramosStr = dbContext.ramos.map((r: any) => r.nome).join(', ');
   const companiesStr = dbContext.companies.map((c: any) => c.name).join(', ');
   const clientsStr = dbContext.clients.slice(0, 100).map((c: any) => c.name).join(', ');
 
-  return `Você é um especialista em análise de documentos de seguros. Analise esta imagem de apólice/orçamento e extraia os dados abaixo.
+  return `Você é um especialista em análise de documentos de seguros. Analise TODAS AS PÁGINAS desta apólice/orçamento e extraia os dados abaixo.
+
+**IMPORTANTE:** Você está recebendo MÚLTIPLAS imagens (todas as páginas do PDF). Procure as informações em QUALQUER uma das páginas.
 
 **CONTEXTO DA BASE DE DADOS:**
 
@@ -212,9 +217,9 @@ function buildVisionPrompt(dbContext: any) {
 **Clientes Cadastrados (primeiros 100):** ${clientsStr}
 
 **INSTRUÇÕES:**
-1. Analise VISUALMENTE o documento
-2. Identifique cada campo listado abaixo
-3. Para seguradoras e ramos, retorne o nome EXATO da lista acima (matching fuzzy)
+1. Analise TODAS as páginas fornecidas
+2. Identifique cada campo listado abaixo (podem estar em páginas diferentes)
+3. Para seguradoras e ramos, retorne o nome EXATO da lista acima
 4. Para clientes, retorne o nome EXATO se encontrar na lista, senão retorne o nome que está no documento
 
 **CAMPOS PARA EXTRAIR:**
@@ -233,26 +238,33 @@ function buildVisionPrompt(dbContext: any) {
 4. **insuranceLine**: Ramo do seguro
    - Retorne o nome EXATO da lista "Ramos Cadastrados"
 
-5. **policyNumber**: Número da apólice/proposta
+5. **policyNumber**: Número da apólice/orçamento/proposta
+   - ⚠️ **PRIORIDADE:**
+     1. Se encontrar "Apólice:" ou "Nº Apólice:", use esse número
+     2. Se não, procure por "Orçamento:" ou "Nº Orçamento:"
+     3. Se não, procure por "Proposta:" ou "Nº Proposta:"
+   - Retorne o número completo com hífens/formatação original
+
 6. **premiumValue**: Valor do prêmio líquido (número)
-   - ⚠️ **CRÍTICO:** Procure por:
+   - ⚠️ **CRÍTICO:** Procure em TODAS as páginas por:
      * "Prêmio Líquido", "Prêmio Total", "Valor do Prêmio"
      * "Prêmio Anual", "Prêmio à Vista"
-     * Valores em R$ próximos ao topo do documento
+     * Valores em R$ (geralmente nas páginas 2 ou 3)
    - Ignore IOF, taxas e adicionais
    - Retorne apenas o número SEM formatação (ex: 5848.43)
-   - Se não encontrar, retorne null
+   - Se não encontrar em NENHUMA página, retorne null
 
 7. **commissionPercentage**: Taxa de comissão (número)
-   - ⚠️ **CRÍTICO:** Procure por:
+   - ⚠️ **CRÍTICO:** Procure em TODAS as páginas por:
      * "Comissão:", "Taxa de Comissão:", "% Comissão"
      * "Comiss.:", "Com.:"
-     * Valores em % próximos ao prêmio
+     * Valores em % (geralmente nas páginas 2 ou 3)
    - Retorne apenas o número SEM o símbolo % (ex: 20)
-   - Se não encontrar, retorne null
-   - Retorne apenas o número (ex: 20)
+   - Se não encontrar em NENHUMA página, retorne null
 
-8. **shouldGenerateRenewal**: true se for "Seguro Novo" ou "Renovação", false se for "Endosso"
+8. **shouldGenerateRenewal**: 
+   - true se for "Seguro Novo" ou "Renovação"
+   - false se for "Endosso"
 
 9. **startDate**: Data de início de vigência (formato YYYY-MM-DD)
    - Procure por "Vigência:", "Das 24 horas do dia", "Início de Vigência"
