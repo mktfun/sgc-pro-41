@@ -65,7 +65,7 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
     }
   });
 
-  // Query para buscar transações filtradas
+  // Query para buscar transações filtradas COM JOIN para obter valores de prêmio
   const { data: transacoesData, isLoading: transacoesLoading } = useQuery({
     queryKey: ['reports-transacoes', filtros],
     queryFn: async () => {
@@ -73,7 +73,13 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
       
       let query = supabase
         .from('transactions')
-        .select('*');
+        .select(`
+          *,
+          apolices!policy_id (
+            premium_value,
+            commission_rate
+          )
+        `);
 
       // Filtro por período - usar transaction_date em vez de date
       if (filtros.intervalo?.from && filtros.intervalo?.to) {
@@ -103,7 +109,20 @@ export function useSupabaseReports(filtros: FiltrosGlobais) {
       }
 
       console.log('✅ Transações carregadas:', data?.length);
-      return data?.map(transformTransactionData) || [];
+      
+      // Transformar dados incluindo premium_value e commission_value
+      return data?.map((tx: any) => {
+        const policy = tx.apolices;
+        const hasPolicyData = policy && policy.premium_value;
+        
+        return {
+          ...transformTransactionData(tx),
+          premiumValue: hasPolicyData ? policy.premium_value : tx.amount,
+          commissionValue: tx.amount,
+          commissionRate: hasPolicyData ? policy.commission_rate : 100,
+          transactionType: tx.policy_id ? 'policy_commission' : 'manual_bonus'
+        };
+      }) || [];
     }
   });
 
