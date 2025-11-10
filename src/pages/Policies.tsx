@@ -20,6 +20,7 @@ import { KpiCard } from '@/components/policies/KpiCard';
 import { exportPoliciesCSV } from '@/utils/exportPoliciesCSV';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 
 export default function Policies() {
   const { clients } = useClients();
@@ -32,6 +33,7 @@ export default function Policies() {
   
   // Estado de paginação e filtros
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [filters, setFilters] = useState<PolicyFilters>({
     searchTerm: '',
     status: 'todos',
@@ -51,7 +53,7 @@ export default function Policies() {
     isLoading
   } = useSupabasePoliciesPaginated({
     page,
-    limit: 10,
+    limit,
     filters
   });
 
@@ -64,10 +66,10 @@ export default function Policies() {
     return Array.from(companyIds);
   }, [companies]);
 
-  // Resetar para página 1 quando os filtros mudarem
+  // Resetar para página 1 quando os filtros ou limite mudarem
   useEffect(() => {
     setPage(1);
-  }, [filters]);
+  }, [filters, limit]);
 
   const [searchParams] = useSearchParams();
   useEffect(() => {
@@ -210,7 +212,7 @@ export default function Policies() {
       </div>
 
       {/* Filtros Avançados */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4">
         {/* Status */}
         <div>
           <Label htmlFor="status" className="text-slate-300">Status</Label>
@@ -328,6 +330,25 @@ export default function Policies() {
           />
         </div>
 
+        {/* Itens por página */}
+        <div>
+          <Label htmlFor="limit" className="text-slate-300">Itens por pág.</Label>
+          <Select
+            value={String(limit)}
+            onValueChange={(value) => setLimit(Number(value))}
+          >
+            <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Resetar Filtros */}
         <div className="flex items-end">
           <Button
@@ -427,6 +448,15 @@ export default function Policies() {
           );
         })}
       </div>
+
+      {/* Controles de Paginação */}
+      <PaginationControls
+        currentPage={page}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        onPageChange={(newPage) => setPage(newPage)}
+        isLoading={isLoading}
+      />
 
       {/* Modais */}
 
