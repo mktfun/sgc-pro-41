@@ -47,7 +47,7 @@ export function ClientPoliciesHistory({ policies }: ClientPoliciesHistoryProps) 
               </div>
               <div className="text-sm text-slate-300 space-y-1">
                 <p><span className="font-medium">Apólice:</span> {policy.policyNumber}</p>
-                <p><span className="font-medium">Seguradora:</span> {companiesLoading ? '...' : getCompanyName(policy.insuranceCompany)}</p>
+                <p><span className="font-medium">Seguradora:</span> {policy.companies?.name || 'Não especificada'}</p>
                 {policy.insuredAsset && (
                   <p><span className="font-medium">Bem Segurado:</span> {policy.insuredAsset}</p>
                 )}

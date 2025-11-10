@@ -118,7 +118,7 @@ export default function Renovacoes() {
         <div>
           <p className="text-slate-400">Seguradora</p>
           <p className="text-white font-medium">
-            {companiesLoading ? '...' : getCompanyName(policy.insuranceCompany)}
+            {policy.companies?.name || 'Seguradora não especificada'}
           </p>
         </div>
         <div>

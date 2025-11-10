@@ -100,7 +100,7 @@ export function PolicyPDFTemplate({ policy, client }: PolicyPDFTemplateProps) {
           </div>
           <div>
             <p className="text-sm text-slate-400">Seguradora</p>
-            <p className="font-semibold text-slate-50">{policy.insuranceCompany}</p>
+            <p className="font-semibold text-slate-50">{policy.companies?.name || 'Seguradora não especificada'}</p>
           </div>
           <div>
             <p className="text-sm text-slate-400">Bem Segurado</p>

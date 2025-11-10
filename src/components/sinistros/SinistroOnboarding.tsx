@@ -314,7 +314,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
                             <div className="flex flex-col">
                               <span className="font-medium">{policy.policyNumber}</span>
                               <span className="text-sm text-muted-foreground">
-                                {policy.insuranceCompany} - {policy.ramos?.nome || policy.type}
+                                {policy.companies?.name || 'Seguradora'} - {policy.ramos?.nome || policy.type}
                               </span>
                             </div>
                           </SelectItem>
@@ -339,7 +339,7 @@ export function SinistroOnboarding({ children, onSuccess }: SinistroOnboardingPr
                       </div>
                       <div>
                         <span className="text-white/60">Seguradora:</span>
-                        <p className="text-white font-medium">{selectedPolicy.insuranceCompany}</p>
+                        <p className="text-white font-medium">{selectedPolicy.companies?.name || 'Seguradora não especificada'}</p>
                       </div>
                     </div>
                   </CardContent>

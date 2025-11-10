@@ -375,7 +375,7 @@ export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProp
                                     </span>
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {policy.insuranceCompany} • {policy.ramos?.nome || policy.type}
+                                    {policy.companies?.name || 'Seguradora'} • {policy.ramos?.nome || policy.type}
                                   </div>
                                 </div>
                               </SelectItem>
@@ -438,7 +438,7 @@ export function SinistroFormModal({ children, onSuccess }: SinistroFormModalProp
                       </div>
                       <div>
                         <span className="text-white/60 text-sm">Seguradora:</span>
-                        <p className="text-white">{selectedPolicy.insuranceCompany}</p>
+                        <p className="text-white">{selectedPolicy.companies?.name || 'Seguradora não especificada'}</p>
                       </div>
                       <div>
                         <span className="text-white/60 text-sm">Tipo:</span>

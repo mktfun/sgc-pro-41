@@ -181,7 +181,7 @@ export default function PolicyDetails() {
                   {isBudget ? 'Orçamento' : 'Apólice'} {policy.policyNumber || `ORÇ-${policy.id.slice(-8)}`}
                 </h1>
               </div>
-              <p className="text-slate-400">{getCompanyName(policy.insuranceCompany)} • {policy.ramos?.nome || policy.type || 'Ramo não especificado'}</p>
+              <p className="text-slate-400">{policy.companies?.name || 'Seguradora não especificada'} • {policy.ramos?.nome || 'Ramo não especificado'}</p>
             </div>
           </div>
           
@@ -245,7 +245,7 @@ export default function PolicyDetails() {
                   </div>
                   <div>
                     <p className="text-sm text-slate-400">Seguradora</p>
-                    <p className="font-medium text-white">{getCompanyName(policy.insuranceCompany)}</p>
+                    <p className="font-medium text-white">{policy.companies?.name || 'Seguradora não especificada'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-400">Ramo</p>
@@ -388,7 +388,7 @@ export default function PolicyDetails() {
                 {isBudget ? (
                   <BudgetConversionModal
                     budgetId={policy.id}
-                    budgetDescription={`${getCompanyName(policy.insuranceCompany)} - ${policy.type}`}
+                    budgetDescription={`${policy.companies?.name || 'Seguradora'} - ${policy.ramos?.nome || 'Ramo'}`}
                     onConversionSuccess={() => {
                       // Refresh the page or update the policy state
                       window.location.reload();
