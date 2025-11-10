@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus, FileText, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Calendar, Plus, FileText, DollarSign, TrendingUp, AlertCircle, Download } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, addDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { PolicyFilters } from '@/hooks/useFilteredPolicies';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +17,18 @@ import { useSupabasePoliciesPaginated } from '@/hooks/useSupabasePoliciesPaginat
 import { useSupabaseCompanies } from '@/hooks/useSupabaseCompanies';
 import { usePolicyKPIs } from '@/hooks/usePolicyKPIs';
 import { KpiCard } from '@/components/policies/KpiCard';
+import { exportPoliciesCSV } from '@/utils/exportPoliciesCSV';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 export default function Policies() {
   const { clients } = useClients();
   const { producers } = useSupabaseProducers();
   const { companies } = useSupabaseCompanies();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isNewPolicyModalOpen, setIsNewPolicyModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Estado de paginação e filtros
   const [page, setPage] = useState(1);
@@ -103,6 +108,24 @@ export default function Policies() {
     setIsNewPolicyModalOpen(false);
   };
 
+  const handleExportCSV = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      await exportPoliciesCSV(filters, user);
+      toast.success('Relatório exportado com sucesso!');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao exportar relatório');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -167,6 +190,15 @@ export default function Policies() {
             value={filters.searchTerm}
             onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
           />
+          <Button
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            variant="outline"
+            className="bg-green-700 hover:bg-green-600 text-white border-green-600"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exportando...' : 'Exportar CSV'}
+          </Button>
           <Button
             onClick={() => setIsNewPolicyModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
