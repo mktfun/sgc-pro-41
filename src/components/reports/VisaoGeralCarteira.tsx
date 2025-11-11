@@ -49,7 +49,7 @@ export function VisaoGeralCarteira({ clientes, apolices }: VisaoGeralCarteiraPro
       value: totalApolices.toLocaleString(),
       icon: FileText,
       bgColor: "bg-purple-600",
-      description: "Apólices registradas no período"
+      description: "Apólices com vigência no período"
     },
     {
       title: "Ticket Médio",

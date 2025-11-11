@@ -96,13 +96,14 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     return filteredClients.length;
   }, [clients, clientsLoading, dateRange]);
 
-  // 🔥 KPI 2: RENOVAÇÕES EM 30 DIAS - MEMOIZAÇÃO INDIVIDUAL
+  // 🔥 KPI 2: RENOVAÇÕES EM 30 DIAS - BASEADO EM VIGÊNCIA
   const renewals30Days = useMemo(() => {
     if (policiesLoading) return 0;
     
     let filteredPolicies = policies;
+    // ✅ CORREÇÃO: Usar start_date (vigência) em vez de createdAt
     if (dateRange?.from && dateRange?.to) {
-      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.startDate));
     }
     
     const renewalsCount = filteredPolicies.filter(policy => 
@@ -113,13 +114,14 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     return renewalsCount;
   }, [policies, policiesLoading, dateRange]);
 
-  // 🔥 KPI 3: RENOVAÇÕES EM 90 DIAS - MEMOIZAÇÃO INDIVIDUAL
+  // 🔥 KPI 3: RENOVAÇÕES EM 90 DIAS - BASEADO EM VIGÊNCIA
   const renewals90Days = useMemo(() => {
     if (policiesLoading) return 0;
     
     let filteredPolicies = policies;
+    // ✅ CORREÇÃO: Usar start_date (vigência) em vez de createdAt
     if (dateRange?.from && dateRange?.to) {
-      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.startDate));
     }
     
     const renewalsCount = filteredPolicies.filter(policy => 
@@ -173,22 +175,22 @@ export function useDashboardMetrics(options: UseDashboardMetricsProps = {}) {
     return comissaoTotal;
   }, [transactions, transactionsLoading]);
 
-  // 🔥 KPI 6: APÓLICES NOVAS DO PERÍODO
+  // 🔥 KPI 6: APÓLICES NOVAS DO PERÍODO (BASEADO EM VIGÊNCIA - start_date)
   const apolicesNovasMes = useMemo(() => {
     if (policiesLoading) return 0;
     
     let filteredPolicies = policies;
     
-    // Se há filtro de data, usar o filtro; senão, usar mês atual
+    // ✅ CORREÇÃO: Usar start_date (vigência) em vez de createdAt (registro)
     if (dateRange?.from && dateRange?.to) {
-      filteredPolicies = policies.filter(policy => isDateInRange(policy.createdAt));
+      filteredPolicies = policies.filter(policy => isDateInRange(policy.startDate));
     } else {
-      filteredPolicies = policies.filter(policy => isInMonth(policy.createdAt, 0));
+      filteredPolicies = policies.filter(policy => isInMonth(policy.startDate, 0));
     }
     
     const apolicesCount = filteredPolicies.filter(policy => policy.status === 'Ativa').length;
 
-    console.log('📋 Apólices novas do período calculadas:', apolicesCount);
+    console.log('📋 Apólices com vigência no período:', apolicesCount);
     return apolicesCount;
   }, [policies, policiesLoading, dateRange]);
 
