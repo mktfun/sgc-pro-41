@@ -49,9 +49,14 @@ export function KpiCard({
   return (
     <Card className={`${getVariantStyles()} p-6 transition-all hover:border-slate-600`}>
       <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col space-y-1 flex-1 min-w-0">
+        <div className="flex flex-col space-y-1 flex-1 min-w-0 overflow-hidden">
           <p className="text-sm font-medium text-slate-400">{title}</p>
-          <p className="text-2xl font-bold text-white break-words">{value}</p>
+          <p 
+            className="text-2xl font-bold text-white whitespace-nowrap truncate" 
+            title={String(value)}
+          >
+            {value}
+          </p>
           {subtitle && (
             <p className="text-xs text-slate-500">{subtitle}</p>
           )}
