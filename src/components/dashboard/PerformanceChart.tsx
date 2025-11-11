@@ -4,7 +4,7 @@ import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
 import { useState, useMemo } from 'react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, LineChart } from 'recharts';
-import { startOfMonth, endOfMonth, format, differenceInDays, subDays, startOfDay, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, format, differenceInDays, subDays, startOfDay, endOfDay, parse } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { useSupabaseTransactions } from '@/hooks/useSupabaseTransactions';
 import { useSupabasePolicies } from '@/hooks/useSupabasePolicies';
@@ -60,9 +60,17 @@ export function PerformanceChart() {
 
     // 2. FILTRAR TRANSAÇÕES POR PERÍODO (LÓGICA CORRIGIDA)
     // O Mapa de apólices sobe, pois é necessário para o filtro de transações
-    const dataInicio = startOfDay(opcoesGrafico.intervalo.from!);
-    const dataFim = endOfDay(opcoesGrafico.intervalo.to!);
-    
+    const dataInicio = startOfDay(
+      typeof opcoesGrafico.intervalo.from === 'string'
+        ? parse(opcoesGrafico.intervalo.from, 'yyyy-MM-dd', new Date())
+        : opcoesGrafico.intervalo.from!
+    );
+    const dataFim = endOfDay(
+      typeof opcoesGrafico.intervalo.to === 'string'
+        ? parse(opcoesGrafico.intervalo.to, 'yyyy-MM-dd', new Date())
+        : opcoesGrafico.intervalo.to!
+    );
+
     const apolicesMap = new Map(policies.map(p => [p.id, p]));
 
     const transacoesFiltradas = transactions.filter(t => {
