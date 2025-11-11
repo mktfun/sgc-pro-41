@@ -45,19 +45,21 @@ export function ClientRowCard({
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div>
+            <div className="min-w-0">
               <p className="text-slate-400">Email</p>
-              <p className="text-white">{client.email || '-'}</p>
+              <p className="text-white truncate" title={client.email || '-'}>
+                {client.email || '-'}
+              </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-slate-400">Telefone</p>
-              <p className="text-white">{client.phone || '-'}</p>
+              <p className="text-white truncate">{client.phone || '-'}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-slate-400">CPF/CNPJ</p>
-              <p className="text-white">{client.cpfCnpj || '-'}</p>
+              <p className="text-white truncate">{client.cpfCnpj || '-'}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-slate-400">Cliente desde</p>
               <p className="text-white">
                 {client.createdAt ? format(new Date(client.createdAt), 'dd/MM/yyyy') : '-'}

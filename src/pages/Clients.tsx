@@ -47,6 +47,9 @@ export default function Clients() {
   // Buscar KPIs dinâmicos
   const { kpis, isLoading: kpisLoading } = useClientKPIs(filters);
 
+  // Calcular comissão média por cliente
+  const avgCommission = totalCount > 0 ? kpis.totalCommission / totalCount : 0;
+
   // Resetar para página 1 quando os filtros ou limite mudarem
   useEffect(() => {
     setPage(1);
@@ -98,13 +101,14 @@ export default function Clients() {
           isLoading={kpisLoading}
         />
         <KpiCard
-          title="Valor Total"
-          value={kpis.totalPoliciesValue.toLocaleString('pt-BR', {
+          title="Comissão Média"
+          value={avgCommission.toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL',
           })}
           icon={DollarSign}
-          isLoading={kpisLoading}
+          subtitle="Por Cliente"
+          isLoading={kpisLoading || isLoading}
         />
       </div>
 

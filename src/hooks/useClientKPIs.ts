@@ -13,6 +13,7 @@ export interface ClientKPIs {
   newClientsLast30d: number;
   clientsWithPolicies: number;
   totalPoliciesValue: number;
+  totalCommission: number;
 }
 
 export function useClientKPIs(filters: ClientFilters) {
@@ -54,12 +55,13 @@ export function useClientKPIs(filters: ClientFilters) {
       const clientIds = (clientsData || []).map(c => c.id);
       
       let policiesValue = 0;
+      let totalCommission = 0;
       let clientsWithActivePolicies = new Set<string>();
 
       if (clientIds.length > 0) {
         const { data: policiesData, error: policiesError } = await supabase
           .from('apolices')
-          .select('client_id, premium_value, status')
+          .select('client_id, premium_value, commission_rate, status')
           .eq('user_id', user.id)
           .in('client_id', clientIds)
           .eq('status', 'Ativa');
@@ -68,7 +70,11 @@ export function useClientKPIs(filters: ClientFilters) {
           console.error('❌ Error fetching policies for KPIs:', policiesError);
         } else {
           (policiesData || []).forEach(policy => {
-            policiesValue += Number(policy.premium_value) || 0;
+            const premium = Number(policy.premium_value) || 0;
+            const commissionRate = Number(policy.commission_rate) || 0;
+            
+            policiesValue += premium;
+            totalCommission += (premium * commissionRate) / 100;
             clientsWithActivePolicies.add(policy.client_id);
           });
         }
@@ -97,6 +103,7 @@ export function useClientKPIs(filters: ClientFilters) {
           newClientsLast30d: 0,
           clientsWithPolicies: clientsWithActivePolicies.size,
           totalPoliciesValue: policiesValue,
+          totalCommission,
         }
       );
 
@@ -113,6 +120,7 @@ export function useClientKPIs(filters: ClientFilters) {
       newClientsLast30d: 0,
       clientsWithPolicies: 0,
       totalPoliciesValue: 0,
+      totalCommission: 0,
     },
     isLoading,
     error,
