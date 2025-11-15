@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Modelos do Gemini a tentar (com fallback)
-const MODELS_TO_TRY = ['gemini-1.5-flash', 'gemini-1.5-flash-001'];
+const MODELS_TO_TRY = ['gemini-2.5-flash', 'gemini-1.5-pro'];
 
 // ============= FUNÇÕES AUXILIARES =============
 
