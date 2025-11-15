@@ -111,6 +111,71 @@ ${dbContext.ramos.map((r: any) => `- ${r.nome}`).join('\n')}
 }`;
 }
 
+// ======== Normalização de RAMO (sinônimos e keywords) =========
+const RAMO_KEYWORDS: Record<string, string[]> = {
+  auto: ['auto','automovel','automóvel','veiculo','veículo','moto','motocicleta','caminhao','caminhão','frota','carro'],
+  'saúde': ['saude','saúde','medico','médico','hospital','plano','odonto','odontologico','odontológico','health'],
+  vida: ['vida','acidentes pessoais','ap','funeral','life'],
+  residencial: ['residencial','residencia','residência','casa','apartamento','imovel','imóvel','condominio','condomínio','home'],
+  empresarial: ['empresarial','empresa','comercial','business','rc','responsabilidade civil','estabelecimento'],
+  consorcio: ['consorcio','consórcio','consortium'],
+  'previdência': ['previdencia','previdência','vgbl','pgbl','aposentadoria','pension'],
+  viagem: ['viagem','travel','trip','turismo'],
+  rural: ['rural','agricola','agrícola','fazenda','plantacao','plantação','colheita'],
+  transporte: ['transporte','carga','frete','transportadora','caminhao','caminhão'],
+  fianca: ['fianca','fiança','aluguel','locacao','locação','rent'],
+  garantia: ['garantia','warranty','garantia estendida'],
+  pet: ['pet','animal','cachorro','gato','dog','cat']
+};
+
+function normalizeText(input?: string | null) {
+  if (!input) return '';
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim();
+}
+
+function findBestRamoKeyFromText(text: string): string | null {
+  const norm = normalizeText(text);
+  let bestKey: string | null = null;
+  let bestScore = 0;
+  for (const [key, kws] of Object.entries(RAMO_KEYWORDS)) {
+    let score = 0;
+    // Bônus se o próprio nome da chave aparece
+    if (norm.includes(key)) score += 5;
+    for (const kw of kws) {
+      if (norm.includes(kw)) score += 2;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestKey = key;
+    }
+  }
+  return bestScore > 0 ? bestKey : null;
+}
+
+function findBestRamoId(rawData: any, dbContext: any): { id: string; match: 'exact' | 'keyword' } | null {
+  const candidates = [rawData?.ramoName, rawData?.insuredItem, rawData?.itemModel, rawData?.itemBrand]
+    .filter(Boolean) as string[];
+  // 1) Tenta match exato por nome
+  const rdName = normalizeText(rawData?.ramoName);
+  if (rdName) {
+    const exact = dbContext.ramos.find((r: any) => normalizeText(r.nome) === rdName);
+    if (exact) return { id: exact.id, match: 'exact' };
+  }
+  // 2) Tenta por keywords
+  const combinedText = candidates.join(' | ');
+  const ramoKey = findBestRamoKeyFromText(combinedText);
+  if (ramoKey) {
+    // Procura um ramo cujo nome contenha a chave
+    const byKey = dbContext.ramos.find((r: any) => normalizeText(r.nome).includes(normalizeText(ramoKey)));
+    if (byKey) return { id: byKey.id, match: 'keyword' };
+  }
+  return null;
+}
+
 /**
  * Chama o Gemini com um modelo específico
  */
@@ -281,20 +346,15 @@ async function processExtractedData(rawData: any, dbContext: any, supabaseAdmin:
     }
   }
 
-  // ============= RAMO (MATCHING) =============
+  // ============= RAMO (MATCHING + NORMALIZAÇÃO) =============
   let ramoId = null;
-  let ramoMatch = 'none';
+  let ramoMatch: 'none' | 'exact' | 'keyword' = 'none';
   
-  if (rawData.ramoName) {
-    const ramoFound = dbContext.ramos.find((r: any) =>
-      r.nome.toLowerCase() === rawData.ramoName.toLowerCase()
-    );
-    
-    if (ramoFound) {
-      ramoId = ramoFound.id;
-      ramoMatch = 'exact';
-      console.log(`✅ Ramo encontrado: ${ramoFound.nome}`);
-    }
+  const ramoResult = findBestRamoId(rawData, dbContext);
+  if (ramoResult) {
+    ramoId = ramoResult.id;
+    ramoMatch = ramoResult.match;
+    console.log(`✅ Ramo identificado (${ramoMatch})`);
   }
 
   // ============= DATAS (VIGÊNCIA DE 1 ANO) =============
@@ -391,11 +451,58 @@ serve(async (req) => {
     // 4. Processar dados (lógica de negócio)
     const processedData = await processExtractedData(rawData, dbContext, supabaseAdmin, user.id);
 
-    // 5. Limpar arquivo temporário
-    const filePath = new URL(fileUrl).pathname.split('/object/public/quote-uploads/')[1];
-    if (filePath) {
-      await supabaseAdmin.storage.from('quote-uploads').remove([filePath]);
-      console.log('🗑️ Arquivo temporário removido');
+    // 5. Persistir PDF no bucket privado 'policy-docs' e remover temporário
+    try {
+      const tempFilePath = new URL(fileUrl).pathname.split('/object/public/quote-uploads/')[1];
+      const originalFileName = tempFilePath?.split('/')?.pop() || `arquivo.pdf`;
+
+      // Reconstroi Blob a partir do base64
+      const byteChars = atob(pdfBase64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const byteArray = new Uint8Array(byteNumbers);
+      const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+
+      const destPath = `${user.id}/${Date.now()}-${originalFileName}`;
+
+      const { error: uploadErr } = await supabaseAdmin.storage
+        .from('policy-docs')
+        .upload(destPath, pdfBlob, { contentType: 'application/pdf', upsert: false });
+
+      if (uploadErr) throw new Error(`Falha ao salvar PDF definitivo: ${uploadErr.message}`);
+
+      // URL assinada para uso imediato no app (7 dias)
+      const { data: signedData, error: signedErr } = await supabaseAdmin.storage
+        .from('policy-docs')
+        .createSignedUrl(destPath, 60 * 60 * 24 * 7);
+
+      if (signedErr) {
+        console.warn('Não foi possível gerar URL assinada:', signedErr.message);
+      }
+
+      // Anexa info do PDF ao payload
+      (processedData as any).pdf_url = destPath;
+      (processedData as any).pdf = {
+        bucket: 'policy-docs',
+        path: destPath,
+        signedUrl: signedData?.signedUrl || null,
+      };
+
+      if (tempFilePath) {
+        await supabaseAdmin.storage.from('quote-uploads').remove([tempFilePath]);
+        console.log('🗑️ Arquivo temporário removido');
+      }
+      console.log('📦 PDF persistido em policy-docs:', destPath);
+    } catch (e) {
+      console.error('⚠️ Falha ao persistir PDF definitivo; mantendo upload temporário', e);
+      // Mantém o arquivo temporário e devolve dados mínimos
+      const tempFilePath = new URL(fileUrl).pathname.split('/object/public/quote-uploads/')[1];
+      (processedData as any).pdf_url = tempFilePath ? `quote-uploads/${tempFilePath}` : fileUrl;
+      (processedData as any).pdf = {
+        bucket: 'quote-uploads',
+        path: tempFilePath || null,
+        signedUrl: null,
+      };
     }
 
     console.log('✅ Processamento concluído:', processedData);
