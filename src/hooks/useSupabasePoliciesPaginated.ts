@@ -35,6 +35,24 @@ export function useSupabasePoliciesPaginated({
 
       console.log('🔍 Fetching policies - Page:', page, 'Limit:', limit, 'Filters:', filters);
 
+      // Se há um termo de busca, buscar primeiro os IDs de clientes correspondentes
+      let clientIds: string[] = [];
+      if (filters.searchTerm && filters.searchTerm.trim()) {
+        const searchTerm = filters.searchTerm.trim();
+        const { data: matchingClients, error: clientError } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('user_id', user.id)
+          .or(`name.ilike.%${searchTerm}%,cpf_cnpj.ilike.%${searchTerm}%`);
+
+        if (clientError) {
+          console.error('Error searching clients:', clientError);
+        } else if (matchingClients) {
+          clientIds = matchingClients.map(c => c.id);
+          console.log('Found matching clients:', clientIds.length);
+        }
+      }
+
       // Construir query base com JOINs e contagem exata
       let query = supabase
         .from('apolices')
@@ -65,10 +83,17 @@ export function useSupabasePoliciesPaginated({
         query = query.eq('producer_id', filters.producerId);
       }
 
-      // Aplicar filtro por Termo de Busca (policy_number e insured_asset)
+      // Aplicar filtro por Termo de Busca
       if (filters.searchTerm && filters.searchTerm.trim()) {
         const searchTerm = filters.searchTerm.trim();
-        query = query.or(`policy_number.ilike.%${searchTerm}%,insured_asset.ilike.%${searchTerm}%`);
+        
+        // Buscar em policy_number, insured_asset OU nos clientes encontrados
+        if (clientIds.length > 0) {
+          query = query.or(`policy_number.ilike.%${searchTerm}%,insured_asset.ilike.%${searchTerm}%,client_id.in.(${clientIds.join(',')})`);
+        } else {
+          // Se não encontrou clientes, buscar apenas em policy_number e insured_asset
+          query = query.or(`policy_number.ilike.%${searchTerm}%,insured_asset.ilike.%${searchTerm}%`);
+        }
       }
 
       // Aplicar filtro por Período de Vencimento
