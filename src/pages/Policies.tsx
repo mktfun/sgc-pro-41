@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Plus, FileText, DollarSign, TrendingUp, AlertCircle, Download } from 'lucide-react';
+import { Calendar, Plus, FileText, DollarSign, TrendingUp, AlertCircle, Download, Upload } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, addDays, isWithinInterval, differenceInDays } from 'date-fns';
 import { PolicyFilters } from '@/hooks/useFilteredPolicies';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import { exportPoliciesCSV } from '@/utils/exportPoliciesCSV';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { PaginationControls } from '@/components/ui/PaginationControls';
+import { AggerImportModal } from '@/components/import/AggerImportModal';
 
 export default function Policies() {
   const { clients } = useClients();
@@ -29,6 +30,7 @@ export default function Policies() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isNewPolicyModalOpen, setIsNewPolicyModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   // Estado de paginação e filtros
@@ -200,6 +202,14 @@ export default function Policies() {
           >
             <Download className="w-4 h-4 mr-2" />
             {isExporting ? 'Exportando...' : 'Exportar CSV'}
+          </Button>
+          <Button
+            onClick={() => setIsImportModalOpen(true)}
+            variant="outline"
+            className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Importar Agger
           </Button>
           <Button
             onClick={() => setIsNewPolicyModalOpen(true)}
@@ -483,6 +493,12 @@ export default function Policies() {
           </div>
         </div>
       )}
+
+      {/* Modal Importação Agger */}
+      <AggerImportModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+      />
 
     </div>
   );
