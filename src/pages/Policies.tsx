@@ -22,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import { AggerImportModal } from '@/components/import/AggerImportModal';
+import { ExportPoliciesModal } from '@/components/policies/ExportPoliciesModal';
 
 export default function Policies() {
   const { clients } = useClients();
@@ -201,8 +202,9 @@ export default function Policies() {
             className="bg-green-700 hover:bg-green-600 text-white border-green-600"
           >
             <Download className="w-4 h-4 mr-2" />
-            {isExporting ? 'Exportando...' : 'Exportar CSV'}
+            {isExporting ? 'Exportando...' : 'CSV'}
           </Button>
+          <ExportPoliciesModal filters={filters} disabled={isLoading} />
           <Button
             onClick={() => setIsImportModalOpen(true)}
             variant="outline"
