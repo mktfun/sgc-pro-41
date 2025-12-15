@@ -52,6 +52,17 @@ const COLUMN_CONFIG: Record<ColumnKey, { header: string; width: number; align: '
   value: { header: 'Valor', width: 28, align: 'right' },
 };
 
+// Sanitize description to NEVER show "undefined"
+const sanitizeDescription = (desc: string | null | undefined, typeName: string, policyNumber: string | null): string => {
+  if (!desc || desc.trim() === '' || desc.includes('undefined') || desc === 'undefined') {
+    if (policyNumber) {
+      return `Comissão Apólice ${policyNumber}`;
+    }
+    return typeName || 'Lançamento Manual';
+  }
+  return desc.replace(/undefined/gi, '').trim() || typeName || 'Lançamento';
+};
+
 export const generateBillingReport = async ({ 
   transactions, 
   metrics, 
@@ -65,73 +76,103 @@ export const generateBillingReport = async ({
   } = options;
 
   const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
   
-  // Cores do design system
+  // Design System Colors
   const primaryColor: [number, number, number] = [124, 58, 237]; // Violet-600
-  const secondaryColor = '#1e293b'; // Slate-800
-  const zebraColor: [number, number, number] = [248, 250, 252]; // Slate-50
+  const headerBgColor: [number, number, number] = [51, 65, 85]; // Slate-700
+  const shadowColor: [number, number, number] = [203, 213, 225]; // Slate-300
+  const cardBgColor: [number, number, number] = [255, 255, 255];
   
-  // 1. Cabeçalho com título personalizado
-  doc.setFontSize(22);
-  doc.setTextColor(secondaryColor);
-  doc.text(title, 14, 20);
+  // ========================================
+  // 1. PREMIUM HEADER BAND
+  // ========================================
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 42, 'F');
   
+  // Brand name - left aligned, white
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SGC Pro', 14, 18);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Sistema de Gestão de Corretora', 14, 26);
+  
+  // Report title - right aligned
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, pageWidth - 14, 18, { align: 'right' });
+  
+  // Period
   doc.setFontSize(10);
-  doc.setTextColor(100);
+  doc.setFont('helvetica', 'normal');
   const periodoTexto = period.from && period.to 
     ? `${format(period.from, 'dd/MM/yyyy')} a ${format(period.to, 'dd/MM/yyyy')}`
     : 'Período Total';
-    
-  doc.text(`Período: ${periodoTexto}`, 14, 28);
-  doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 33);
-
-  // Logo/Brand
-  doc.setFontSize(14);
-  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text('SGC Pro', 196, 20, { align: 'right' });
-  doc.setFontSize(8);
-  doc.setTextColor(150);
-  doc.text('Sistema de Gestão de Corretora', 196, 25, { align: 'right' });
-
-  // 2. Resumo Financeiro (Cards)
-  const startY = 45;
-  const boxWidth = 44;
-  const boxHeight = 22;
-  const gap = 4;
+  doc.text(`Período: ${periodoTexto}`, pageWidth - 14, 28, { align: 'right' });
   
-  const drawMetricBox = (x: number, label: string, value: number, textColor: string) => {
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(220);
-    doc.roundedRect(x, startY, boxWidth, boxHeight, 2, 2, 'FD');
+  // Generation date
+  doc.setFontSize(8);
+  doc.setTextColor(220, 220, 255);
+  doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth - 14, 36, { align: 'right' });
+
+  // ========================================
+  // 2. METRIC CARDS WITH SHADOW EFFECT
+  // ========================================
+  const startY = 52;
+  const boxWidth = 44;
+  const boxHeight = 26;
+  const gap = 4;
+  const startX = 14;
+  
+  const drawMetricCard = (x: number, label: string, value: number, valueColor: string, iconColor: [number, number, number]) => {
+    // Shadow effect
+    doc.setFillColor(...shadowColor);
+    doc.roundedRect(x + 1.5, startY + 1.5, boxWidth, boxHeight, 3, 3, 'F');
     
-    doc.setFontSize(7);
-    doc.setTextColor(100);
-    doc.text(label, x + 3, startY + 7);
+    // Card background
+    doc.setFillColor(...cardBgColor);
+    doc.setDrawColor(230, 230, 230);
+    doc.roundedRect(x, startY, boxWidth, boxHeight, 3, 3, 'FD');
     
-    doc.setFontSize(10);
-    doc.setTextColor(textColor);
+    // Icon circle
+    doc.setFillColor(...iconColor);
+    doc.circle(x + 7, startY + 9, 3, 'F');
+    
+    // Label
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, x + 13, startY + 10);
+    
+    // Value
+    doc.setFontSize(12);
+    doc.setTextColor(valueColor);
     doc.setFont('helvetica', 'bold');
-    doc.text(formatCurrency(value), x + 3, startY + 16);
+    doc.text(formatCurrency(value), x + 4, startY + 21);
     doc.setFont('helvetica', 'normal');
   };
 
-  drawMetricBox(14, 'Receitas', metrics.totalGanhos, '#16a34a');
-  drawMetricBox(14 + boxWidth + gap, 'Despesas', metrics.totalPerdas, '#dc2626');
-  drawMetricBox(14 + (boxWidth + gap) * 2, 'Saldo Líquido', metrics.saldoLiquido, metrics.saldoLiquido >= 0 ? '#16a34a' : '#dc2626');
-  drawMetricBox(14 + (boxWidth + gap) * 3, 'Previsto', metrics.totalPrevisto, '#2563eb');
+  drawMetricCard(startX, 'Receitas', metrics.totalGanhos, '#16a34a', [34, 197, 94]); // Green
+  drawMetricCard(startX + boxWidth + gap, 'Despesas', metrics.totalPerdas, '#dc2626', [239, 68, 68]); // Red
+  drawMetricCard(startX + (boxWidth + gap) * 2, 'Saldo Líquido', metrics.saldoLiquido, metrics.saldoLiquido >= 0 ? '#16a34a' : '#dc2626', metrics.saldoLiquido >= 0 ? [34, 197, 94] : [239, 68, 68]);
+  drawMetricCard(startX + (boxWidth + gap) * 3, 'Previsto', metrics.totalPrevisto, '#2563eb', [59, 130, 246]); // Blue
 
-  // 3. Construir colunas dinâmicas
+  // ========================================
+  // 3. EXECUTIVE TABLE
+  // ========================================
   const orderedColumns = selectedColumns.filter(col => COLUMN_CONFIG[col]);
-  
   const headers = orderedColumns.map(col => COLUMN_CONFIG[col].header);
   
-  // Função para obter valor de uma coluna
   const getColumnValue = (t: TransactionRow, col: ColumnKey): string => {
     switch (col) {
       case 'date': return t.date;
-      case 'description': return t.description;
-      case 'client': return t.clientName;
-      case 'type': return t.typeName;
+      case 'description': return sanitizeDescription(t.description, t.typeName, t.policyNumber);
+      case 'client': return t.clientName || 'Não informado';
+      case 'type': return t.typeName || 'Transação';
       case 'status': return t.status;
       case 'value': return `${t.nature === 'GANHO' ? '+' : '-'} ${formatCurrency(Math.abs(t.amount))}`;
       default: return '-';
@@ -142,8 +183,8 @@ export const generateBillingReport = async ({
     orderedColumns.map(col => getColumnValue(t, col))
   );
 
-  // Calcular column styles dinamicamente
-  const columnStyles: Record<number, { cellWidth: number; halign: 'left' | 'center' | 'right'; fontStyle?: 'normal' | 'bold' | 'italic' | 'bolditalic' }> = {};
+  // Column styles
+  const columnStyles: Record<number, { cellWidth: number; halign: 'left' | 'center' | 'right'; fontStyle?: 'normal' | 'bold' }> = {};
   orderedColumns.forEach((col, index) => {
     const config = COLUMN_CONFIG[col];
     columnStyles[index] = {
@@ -153,33 +194,33 @@ export const generateBillingReport = async ({
     };
   });
 
-  // Índices das colunas especiais para colorização
   const valueColumnIndex = orderedColumns.indexOf('value');
   const statusColumnIndex = orderedColumns.indexOf('status');
 
   autoTable(doc, {
-    startY: startY + boxHeight + 12,
+    startY: startY + boxHeight + 14,
     head: [headers],
     body: tableData,
     theme: 'grid',
     headStyles: {
-      fillColor: primaryColor,
+      fillColor: headerBgColor, // Slate-700 for executive look
       textColor: '#ffffff',
-      fontSize: 8,
+      fontSize: 9,
       fontStyle: 'bold',
-      halign: 'center'
+      halign: 'center',
+      cellPadding: 4
     },
     bodyStyles: {
-      fontSize: 7,
+      fontSize: 8,
       textColor: '#334155',
-      cellPadding: 2
+      cellPadding: 3
     },
     columnStyles,
     alternateRowStyles: {
-      fillColor: zebraColor
+      fillColor: [248, 250, 252] // Slate-50
     },
     didParseCell: function(data) {
-      // Colorir valores
+      // Color values
       if (data.section === 'body' && valueColumnIndex >= 0 && data.column.index === valueColumnIndex) {
         const rawValue = String(data.cell.raw);
         if (rawValue.startsWith('-')) {
@@ -188,7 +229,7 @@ export const generateBillingReport = async ({
           data.cell.styles.textColor = '#16a34a';
         }
       }
-      // Colorir Status
+      // Color status
       if (data.section === 'body' && statusColumnIndex >= 0 && data.column.index === statusColumnIndex) {
         const status = String(data.cell.raw);
         if (status === 'Pago') {
@@ -212,38 +253,63 @@ export const generateBillingReport = async ({
       textColor: '#1e293b',
       fontStyle: 'bold',
       halign: 'right',
-      fontSize: 9
+      fontSize: 10,
+      cellPadding: 4
     }
   });
 
-  // 4. Observações (se houver)
+  // ========================================
+  // 4. NOTES SECTION (if provided)
+  // ========================================
   if (notes) {
     const finalY = (doc as any).lastAutoTable?.finalY || 150;
-    doc.setFontSize(8);
+    
+    doc.setDrawColor(220, 220, 220);
+    doc.line(14, finalY + 8, pageWidth - 14, finalY + 8);
+    
+    doc.setFontSize(9);
     doc.setTextColor(100);
-    doc.text('Observações:', 14, finalY + 10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Observações:', 14, finalY + 16);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(60);
     
-    // Quebrar texto longo em múltiplas linhas
-    const splitNotes = doc.splitTextToSize(notes, 180);
-    doc.text(splitNotes, 14, finalY + 16);
+    const splitNotes = doc.splitTextToSize(notes, pageWidth - 28);
+    doc.text(splitNotes, 14, finalY + 23);
   }
 
-  // 5. Rodapé em todas as páginas
+  // ========================================
+  // 5. PROFESSIONAL FOOTER ON ALL PAGES
+  // ========================================
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
+    
+    // Separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, pageHeight - 18, pageWidth - 14, pageHeight - 18);
+    
+    // Legal text
+    doc.setFontSize(7);
+    doc.setTextColor(130);
     doc.text(
-      `Página ${i} de ${pageCount} • Gerado por SGC Pro`,
-      doc.internal.pageSize.width / 2,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
+      `Documento gerado eletronicamente em ${format(new Date(), 'dd/MM/yyyy HH:mm')} via SGC Pro`,
+      14,
+      pageHeight - 10
+    );
+    
+    // Pagination
+    doc.text(
+      `Pág ${i} de ${pageCount}`,
+      pageWidth - 14,
+      pageHeight - 10,
+      { align: 'right' }
     );
   }
 
-  // Nome do arquivo semântico
+  // ========================================
+  // 6. SAVE FILE
+  // ========================================
   const monthYear = period.from 
     ? format(period.from, 'MMM_yyyy', { locale: ptBR }).toUpperCase()
     : 'GERAL';

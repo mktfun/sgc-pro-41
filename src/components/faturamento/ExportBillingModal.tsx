@@ -120,16 +120,28 @@ export function ExportBillingModal({
       
       filteredMetrics.saldoLiquido = filteredMetrics.totalGanhos - filteredMetrics.totalPerdas;
 
-      // Transformar dados
+      // Transformar dados com SANITIZAÇÃO de descrições
       const reportTransactions = filteredTransactions.map(t => {
         const client = clients.find(c => c.id === t.clientId);
         const transactionType = transactionTypes.find(tt => tt.id === t.typeId);
         const policy = policies.find(p => p.id === t.policyId);
         
+        // SANITIZAÇÃO CRÍTICA: Nunca mostrar "undefined"
+        let safeDescription = t.description?.trim() || '';
+        if (!safeDescription || safeDescription.includes('undefined') || safeDescription === 'undefined') {
+          if (policy?.policyNumber) {
+            safeDescription = `Comissão Apólice ${policy.policyNumber}`;
+          } else {
+            safeDescription = transactionType?.name || 'Lançamento Manual';
+          }
+        }
+        // Remove qualquer "undefined" residual
+        safeDescription = safeDescription.replace(/undefined/gi, '').trim() || transactionType?.name || 'Lançamento';
+        
         return {
           date: new Date(t.date).toLocaleDateString('pt-BR'),
-          description: t.description || 'Sem descrição',
-          clientName: client?.name || '-',
+          description: safeDescription,
+          clientName: client?.name || 'Não informado',
           typeName: transactionType?.name || 'Transação',
           policyNumber: policy?.policyNumber || null,
           status: t.status === 'PAGO' ? 'Pago' : t.status === 'PARCIALMENTE_PAGO' ? 'Parcial' : 'Pendente',
