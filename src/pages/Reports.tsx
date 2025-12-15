@@ -86,13 +86,6 @@ export default function Reports() {
     });
   };
 
-  // Calcular KPIs da carteira para o modal
-  const apolicesAtivas = apolicesFiltradas.filter(p => p.status === 'Ativa');
-  const valorTotalCarteira = apolicesAtivas.reduce((sum, p) => sum + (p.premium_value || 0), 0);
-  const numeroClientes = new Set(apolicesFiltradas.map(p => p.client_id)).size;
-  const numeroApolices = apolicesFiltradas.length;
-  const ticketMedio = numeroApolices > 0 ? valorTotalCarteira / numeroApolices : 0;
-
   return (
     <div className="p-6 space-y-6">
       <div className="mb-2 flex items-start justify-between">
@@ -101,22 +94,8 @@ export default function Reports() {
           <p className="text-slate-400">Central de inteligência para análise completa da carteira e tomada de decisões estratégicas</p>
         </div>
         <ExportManagementModal
-          dateRange={filtrosGlobais.intervalo}
-          portfolio={{
-            valorTotalCarteira,
-            numeroClientes,
-            numeroApolices,
-            ticketMedio
-          }}
-          financial={{
-            totalGanhos,
-            totalPerdas,
-            saldoLiquido
-          }}
-          branchDistribution={branchDistributionDataFromTransactions}
-          companyDistribution={companyDistributionDataFromTransactions}
-          producerPerformance={dadosPerformanceProdutor.data}
-          disabled={isLoading || !temDados}
+          initialDateRange={filtrosGlobais.intervalo}
+          disabled={isLoading}
         />
       </div>
 
