@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, Check, ExternalLink, History, FileText } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Calendar, Check, ExternalLink, History } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -23,13 +23,13 @@ import { HistoricoPagamentos } from '@/components/faturamento/HistoricoPagamento
 import { FiltrosFaturamento } from '@/components/faturamento/FiltrosFaturamento';
 import { BackfillCommissionsButton } from '@/components/faturamento/BackfillCommissionsButton';
 import { EditTransactionModal } from '@/components/faturamento/EditTransactionModal';
+import { ExportBillingModal } from '@/components/faturamento/ExportBillingModal';
 import { TransactionTableSkeleton } from '@/components/faturamento/TransactionTableSkeleton';
 import { MetricsSkeleton } from '@/components/faturamento/MetricsSkeleton';
 import { useSupabaseTransactionsPaginated } from '@/hooks/useSupabaseTransactionsPaginated';
 import { useClients, usePolicies, useTransactionTypes } from '@/hooks/useAppData';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/use-toast';
-import { useBillingPDF } from '@/hooks/useBillingPDF';
 import { Transaction } from '@/types';
 import { DateRange } from 'react-day-picker';
 import { getCurrentMonthRange } from '@/utils/dateUtils';
@@ -70,7 +70,7 @@ export default function Faturamento() {
   const { clients } = useClients();
   const { policies } = usePolicies();
   const { transactionTypes } = useTransactionTypes();
-  const { generatePDF, isGenerating } = useBillingPDF();
+  
 
   const handleMarkAsPaid = async (transactionId: string) => {
     try {
@@ -139,22 +139,15 @@ export default function Faturamento() {
             <p className="text-slate-400">Acompanhe todas as transações financeiras da corretora</p>
           </div>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="bg-white/10 border-white/20 text-slate-200 hover:bg-white/20 gap-2"
-              onClick={() => generatePDF({
-                transactions: transactions || [],
-                metrics,
-                dateRange,
-                clients: clients || [],
-                policies: policies || [],
-                transactionTypes: transactionTypes || []
-              })}
-              disabled={isGenerating || loading || !transactions?.length}
-            >
-              <FileText className="h-4 w-4" />
-              {isGenerating ? 'Gerando...' : 'Exportar PDF'}
-            </Button>
+            <ExportBillingModal
+              transactions={transactions || []}
+              metrics={metrics}
+              dateRange={dateRange}
+              clients={clients || []}
+              policies={policies || []}
+              transactionTypes={transactionTypes || []}
+              disabled={loading}
+            />
             <BackfillCommissionsButton />
             <ModalNovaTransacao />
           </div>
