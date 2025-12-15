@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,20 +13,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileDown, Loader2, Download, Calendar } from 'lucide-react';
-import { generateManagementReport, ManagementReportData, ReportOptions } from '@/utils/pdf/generateManagementReport';
+import { FileDown, Loader2, Download, RefreshCw } from 'lucide-react';
+import { generateManagementReport, ReportOptions } from '@/utils/pdf/generateManagementReport';
 import { toast } from 'sonner';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
+import { useFilteredDataForReports } from '@/hooks/useFilteredDataForReports';
 
 interface ExportManagementModalProps {
-  dateRange: DateRange | undefined;
-  portfolio: ManagementReportData['portfolio'];
-  financial: ManagementReportData['financial'];
-  branchDistribution: ManagementReportData['branchDistribution'];
-  companyDistribution: ManagementReportData['companyDistribution'];
-  producerPerformance: ManagementReportData['producerPerformance'];
+  initialDateRange: DateRange | undefined;
   disabled?: boolean;
 }
 
@@ -41,12 +38,7 @@ const SECTION_OPTIONS = [
 type SectionKey = typeof SECTION_OPTIONS[number]['key'];
 
 export function ExportManagementModal({
-  dateRange,
-  portfolio,
-  financial,
-  branchDistribution,
-  companyDistribution,
-  producerPerformance,
+  initialDateRange,
   disabled
 }: ExportManagementModalProps) {
   const [open, setOpen] = useState(false);
@@ -56,6 +48,46 @@ export function ExportManagementModal({
   const [selectedSections, setSelectedSections] = useState<SectionKey[]>([
     'kpis', 'financial', 'branches', 'companies', 'producers'
   ]);
+  
+  // Estado local do período - pode ser alterado dentro do modal
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(initialDateRange);
+
+  // ========================================
+  // BUSCA DE DADOS INTERNA
+  // ========================================
+  const { 
+    apolicesFiltradas, 
+    dadosPerformanceProdutor,
+    branchDistributionDataFromTransactions,
+    companyDistributionDataFromTransactions,
+    totalGanhos,
+    totalPerdas,
+    saldoLiquido,
+    temDados,
+    isLoading: isLoadingData
+  } = useFilteredDataForReports({
+    intervalo: dateRange,
+    seguradoraIds: [],
+    ramos: [],
+    produtorIds: [],
+    statusIds: []
+  });
+
+  // Calcular KPIs da carteira
+  const portfolioData = useMemo(() => {
+    const apolicesAtivas = apolicesFiltradas.filter(p => p.status === 'Ativa');
+    const valorTotalCarteira = apolicesAtivas.reduce((sum, p) => sum + (p.premium_value || 0), 0);
+    const numeroClientes = new Set(apolicesFiltradas.map(p => p.client_id)).size;
+    const numeroApolices = apolicesFiltradas.length;
+    const ticketMedio = numeroApolices > 0 ? valorTotalCarteira / numeroApolices : 0;
+
+    return {
+      valorTotalCarteira,
+      numeroClientes,
+      numeroApolices,
+      ticketMedio
+    };
+  }, [apolicesFiltradas]);
 
   const handleSectionToggle = (section: SectionKey) => {
     setSelectedSections(prev => 
@@ -68,6 +100,11 @@ export function ExportManagementModal({
   const handleGenerate = async () => {
     if (selectedSections.length === 0) {
       toast.error('Selecione ao menos uma seção para o relatório.');
+      return;
+    }
+
+    if (!temDados) {
+      toast.error('Não há dados disponíveis para o período selecionado.');
       return;
     }
 
@@ -85,13 +122,26 @@ export function ExportManagementModal({
         }
       };
 
+      console.log('📊 Gerando relatório com dados:', {
+        periodo: dateRange,
+        portfolio: portfolioData,
+        financial: { totalGanhos, totalPerdas, saldoLiquido },
+        branches: branchDistributionDataFromTransactions.length,
+        companies: companyDistributionDataFromTransactions.length,
+        producers: dadosPerformanceProdutor.data.length
+      });
+
       await generateManagementReport({
         period: { from: dateRange?.from, to: dateRange?.to },
-        portfolio,
-        financial,
-        branchDistribution,
-        companyDistribution,
-        producerPerformance
+        portfolio: portfolioData,
+        financial: {
+          totalGanhos,
+          totalPerdas,
+          saldoLiquido
+        },
+        branchDistribution: branchDistributionDataFromTransactions,
+        companyDistribution: companyDistributionDataFromTransactions,
+        producerPerformance: dadosPerformanceProdutor.data
       }, options);
 
       toast.success('Relatório de Gestão gerado com sucesso!');
@@ -108,6 +158,17 @@ export function ExportManagementModal({
     setTitle('Relatório de Gestão');
     setNotes('');
     setSelectedSections(['kpis', 'financial', 'branches', 'companies', 'producers']);
+    setDateRange(initialDateRange);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen) {
+      // Ao abrir, sincroniza com o período da tela
+      setDateRange(initialDateRange);
+    } else {
+      resetForm();
+    }
   };
 
   const formatPeriod = () => {
@@ -120,10 +181,7 @@ export function ExportManagementModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      setOpen(isOpen);
-      if (!isOpen) resetForm();
-    }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -134,21 +192,29 @@ export function ExportManagementModal({
           Baixar Relatório Gerencial
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Configurar Relatório de Gestão</DialogTitle>
           <DialogDescription>
-            Personalize o conteúdo do seu relatório antes de exportar.
+            Personalize o período e conteúdo do seu relatório antes de exportar.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Período */}
-          <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Período: <strong className="text-foreground">{formatPeriod()}</strong>
-            </span>
+          {/* Seletor de Período */}
+          <div className="space-y-2">
+            <Label>Período do Relatório</Label>
+            <DatePickerWithRange 
+              date={dateRange}
+              onDateChange={setDateRange}
+              className="w-full"
+            />
+            {isLoadingData && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                Atualizando dados...
+              </div>
+            )}
           </div>
 
           {/* Personalização */}
@@ -194,11 +260,22 @@ export function ExportManagementModal({
             </div>
           </div>
 
-          {/* Info */}
-          <div className="rounded-lg bg-muted/50 p-3 text-center">
-            <span className="text-sm text-muted-foreground">
-              <strong className="text-foreground">{selectedSections.length}</strong> seções selecionadas
-            </span>
+          {/* Resumo */}
+          <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Período:</span>
+              <span className="font-medium">{formatPeriod()}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Seções:</span>
+              <span className="font-medium">{selectedSections.length} selecionadas</span>
+            </div>
+            {!isLoadingData && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Apólices no período:</span>
+                <span className="font-medium">{portfolioData.numeroApolices}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -206,11 +283,19 @@ export function ExportManagementModal({
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={isGenerating}>
             Cancelar
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating || selectedSections.length === 0}>
+          <Button 
+            onClick={handleGenerate} 
+            disabled={isGenerating || selectedSections.length === 0 || isLoadingData || !temDados}
+          >
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Gerando PDF...
+              </>
+            ) : isLoadingData ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Carregando...
               </>
             ) : (
               <>
