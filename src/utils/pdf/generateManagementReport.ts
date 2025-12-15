@@ -51,6 +51,18 @@ export interface ManagementReportData {
   }>;
 }
 
+export interface ReportOptions {
+  title: string;
+  notes?: string;
+  sections: {
+    kpis: boolean;
+    financial: boolean;
+    branches: boolean;
+    companies: boolean;
+    producers: boolean;
+  };
+}
+
 // ========================================
 // CONSTANTES DE LAYOUT
 // ========================================
@@ -340,18 +352,73 @@ function drawProducerPerformanceTable(doc: jsPDF, data: ManagementReportData['pr
   return (doc as any).lastAutoTable?.finalY || yPos + 40;
 }
 
+function drawNotes(doc: jsPDF, notes: string, yPos: number): number {
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  
+  // Verificar se precisa nova página
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
+  yPos += 8;
+  
+  // Título da seção
+  doc.setFontSize(9);
+  doc.setTextColor(PDF_COLORS.text.secondary);
+  doc.setFont('helvetica', 'bold');
+  doc.text('OBSERVAÇÕES', MARGIN, yPos);
+  
+  yPos += 6;
+  
+  // Caixa de observações
+  doc.setDrawColor(PDF_COLORS.border);
+  doc.setLineWidth(0.3);
+  doc.setFillColor('#f8fafc');
+  doc.roundedRect(MARGIN, yPos, pageWidth - MARGIN * 2, 20, 2, 2, 'FD');
+  
+  // Texto das observações
+  doc.setFontSize(8);
+  doc.setTextColor(PDF_COLORS.text.primary);
+  doc.setFont('helvetica', 'normal');
+  
+  const maxWidth = pageWidth - MARGIN * 2 - 6;
+  const splitNotes = doc.splitTextToSize(notes, maxWidth);
+  doc.text(splitNotes, MARGIN + 3, yPos + 6);
+  
+  return yPos + 26;
+}
+
 // ========================================
 // FUNÇÃO PRINCIPAL
 // ========================================
-export async function generateManagementReport(data: ManagementReportData): Promise<void> {
+export async function generateManagementReport(
+  data: ManagementReportData, 
+  options?: ReportOptions
+): Promise<void> {
   const doc = new jsPDF();
   const pageHeight = doc.internal.pageSize.height;
+  
+  // Opções padrão
+  const reportOptions: ReportOptions = options || {
+    title: 'Relatório de Gestão',
+    sections: {
+      kpis: true,
+      financial: true,
+      branches: true,
+      companies: true,
+      producers: true
+    }
+  };
+  
+  let sectionNumber = 1;
   
   // ========================================
   // 1. CABEÇALHO
   // ========================================
   let yPos = drawPDFHeader(doc, {
-    title: 'Relatório de Gestão',
+    title: reportOptions.title,
     subtitle: 'RELATÓRIO GERENCIAL',
     period: data.period
   });
@@ -359,67 +426,94 @@ export async function generateManagementReport(data: ManagementReportData): Prom
   // ========================================
   // 2. SEÇÃO: VISÃO GERAL DA CARTEIRA (KPIs)
   // ========================================
-  yPos += 10;
-  yPos = drawSectionTitle(doc, '1. Visão Geral da Carteira', yPos);
-  yPos = drawPortfolioKPIs(doc, data.portfolio, yPos);
-  
-  // Linha separadora
-  doc.setDrawColor(PDF_COLORS.border);
-  doc.setLineWidth(0.2);
-  doc.line(MARGIN, yPos, doc.internal.pageSize.width - MARGIN, yPos);
+  if (reportOptions.sections.kpis) {
+    yPos += 10;
+    yPos = drawSectionTitle(doc, `${sectionNumber}. Visão Geral da Carteira`, yPos);
+    yPos = drawPortfolioKPIs(doc, data.portfolio, yPos);
+    
+    // Linha separadora
+    doc.setDrawColor(PDF_COLORS.border);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN, yPos, doc.internal.pageSize.width - MARGIN, yPos);
+    sectionNumber++;
+  }
   
   // ========================================
   // 3. SEÇÃO: RESUMO FINANCEIRO
   // ========================================
-  yPos += 8;
-  yPos = drawSectionTitle(doc, '2. Resumo Financeiro', yPos);
-  yPos = drawFinancialSummary(doc, data.financial, yPos);
-  
-  // Linha separadora
-  doc.setDrawColor(PDF_COLORS.border);
-  doc.setLineWidth(0.2);
-  doc.line(MARGIN, yPos, doc.internal.pageSize.width - MARGIN, yPos);
+  if (reportOptions.sections.financial) {
+    yPos += 8;
+    yPos = drawSectionTitle(doc, `${sectionNumber}. Resumo Financeiro`, yPos);
+    yPos = drawFinancialSummary(doc, data.financial, yPos);
+    
+    // Linha separadora
+    doc.setDrawColor(PDF_COLORS.border);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN, yPos, doc.internal.pageSize.width - MARGIN, yPos);
+    sectionNumber++;
+  }
   
   // ========================================
   // 4. SEÇÃO: DISTRIBUIÇÃO POR RAMO
   // ========================================
-  yPos += 8;
-  yPos = drawSectionTitle(doc, '3. Distribuição por Ramo', yPos);
-  yPos = drawBranchDistributionTable(doc, data.branchDistribution, yPos);
-  
-  // Verificar se precisa nova página
-  if (yPos > pageHeight - 80) {
-    doc.addPage();
-    yPos = 20;
+  if (reportOptions.sections.branches) {
+    // Verificar se precisa nova página
+    if (yPos > pageHeight - 80) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 8;
+    yPos = drawSectionTitle(doc, `${sectionNumber}. Distribuição por Ramo`, yPos);
+    yPos = drawBranchDistributionTable(doc, data.branchDistribution, yPos);
+    sectionNumber++;
   }
   
   // ========================================
   // 5. SEÇÃO: DISTRIBUIÇÃO POR SEGURADORA
   // ========================================
-  yPos += 10;
-  yPos = drawSectionTitle(doc, '4. Distribuição por Seguradora', yPos);
-  yPos = drawCompanyDistributionTable(doc, data.companyDistribution, yPos);
-  
-  // Verificar se precisa nova página
-  if (yPos > pageHeight - 80) {
-    doc.addPage();
-    yPos = 20;
+  if (reportOptions.sections.companies) {
+    // Verificar se precisa nova página
+    if (yPos > pageHeight - 80) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 10;
+    yPos = drawSectionTitle(doc, `${sectionNumber}. Distribuição por Seguradora`, yPos);
+    yPos = drawCompanyDistributionTable(doc, data.companyDistribution, yPos);
+    sectionNumber++;
   }
   
   // ========================================
   // 6. SEÇÃO: PERFORMANCE POR PRODUTOR
   // ========================================
-  yPos += 10;
-  yPos = drawSectionTitle(doc, '5. Performance por Produtor', yPos);
-  yPos = drawProducerPerformanceTable(doc, data.producerPerformance, yPos);
+  if (reportOptions.sections.producers) {
+    // Verificar se precisa nova página
+    if (yPos > pageHeight - 80) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    yPos += 10;
+    yPos = drawSectionTitle(doc, `${sectionNumber}. Performance por Produtor`, yPos);
+    yPos = drawProducerPerformanceTable(doc, data.producerPerformance, yPos);
+  }
   
   // ========================================
-  // 7. RODAPÉ EM TODAS AS PÁGINAS
+  // 7. OBSERVAÇÕES (se houver)
+  // ========================================
+  if (reportOptions.notes && reportOptions.notes.trim()) {
+    yPos = drawNotes(doc, reportOptions.notes, yPos);
+  }
+  
+  // ========================================
+  // 8. RODAPÉ EM TODAS AS PÁGINAS
   // ========================================
   drawPDFFooter(doc);
   
   // ========================================
-  // 8. SALVAR ARQUIVO
+  // 9. SALVAR ARQUIVO
   // ========================================
   const monthYear = data.period?.from 
     ? format(data.period.from, 'MMM_yyyy', { locale: ptBR }).toUpperCase()
