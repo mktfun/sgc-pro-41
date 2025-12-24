@@ -219,6 +219,17 @@ export function useCRMDeals() {
           }
         );
       }
+      
+      // Always create audit note for any update (non-blocking)
+      if (data.client_id) {
+        supabase.functions.invoke('chatwoot-sync', {
+          body: { action: 'sync_deal_attributes', deal_id: data.id }
+        }).then(response => {
+          console.log('📬 Chat Tork audit note sync:', response);
+        }).catch(err => {
+          console.warn('Failed to sync deal update note:', err);
+        });
+      }
     },
     onError: (error: any) => {
       toast.error('Erro ao atualizar negócio');
@@ -227,17 +238,35 @@ export function useCRMDeals() {
   });
 
   const deleteDeal = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (deal: { id: string; title: string; client_id: string | null }) => {
       const { error } = await supabase
         .from('crm_deals')
         .delete()
-        .eq('id', id);
+        .eq('id', deal.id);
 
       if (error) throw error;
+      return deal; // Return for onSuccess
     },
-    onSuccess: () => {
+    onSuccess: async (deletedDeal) => {
       queryClient.invalidateQueries({ queryKey: ['crm-deals'] });
       toast.success('Negócio removido');
+      
+      // Sync deletion to Chat Tork (non-blocking)
+      if (deletedDeal.client_id) {
+        supabase.functions.invoke('chatwoot-sync', {
+          body: {
+            action: 'delete_deal',
+            deal_title: deletedDeal.title,
+            client_id: deletedDeal.client_id
+          }
+        }).then(response => {
+          if (response.data?.success) {
+            toast.success('Histórico atualizado no Chat Tork', { id: 'chattork-delete' });
+          }
+        }).catch(err => {
+          console.warn('Failed to sync deletion to Chat Tork:', err);
+        });
+      }
     },
     onError: (error: any) => {
       toast.error('Erro ao remover negócio');

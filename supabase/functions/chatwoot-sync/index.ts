@@ -57,12 +57,12 @@ async function getChatwootConfig(supabase: any, userId: string): Promise<Chatwoo
     .maybeSingle();
 
   if (error || !data) {
-    console.log('No Chatwoot config found for user:', userId);
+    console.log('No Chat Tork config found for user:', userId);
     return null;
   }
 
   if (!data.chatwoot_url || !data.chatwoot_api_key || !data.chatwoot_account_id) {
-    console.log('Incomplete Chatwoot config for user:', userId);
+    console.log('Incomplete Chat Tork config for user:', userId);
     return null;
   }
 
@@ -90,7 +90,7 @@ async function chatwootRequest(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Chatwoot API error: ${response.status} - ${errorText}`);
+    throw new Error(`Chat Tork API error: ${response.status} - ${errorText}`);
   }
 
   // DELETE retorna 204 No Content (sem body JSON)
@@ -178,7 +178,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'Chatwoot not configured. Please add your credentials in Settings.' 
+          message: 'Chat Tork not configured. Please add your credentials in Settings.' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -187,7 +187,7 @@ serve(async (req) => {
     switch (action) {
       // ========== VALIDATE CONNECTION ==========
       case 'validate': {
-        console.log('Validating Chatwoot connection...');
+        console.log('Validating Chat Tork connection...');
         
         try {
           // GET para listar inboxes (endpoint leve que valida autenticação)
@@ -199,7 +199,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: `Chatwoot conectado! ${inboxCount} inbox(es) encontrados.`,
+              message: `Chat Tork conectado! ${inboxCount} inbox(es) encontrados.`,
               inboxes: inboxCount
             }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -275,27 +275,27 @@ serve(async (req) => {
                 } else {
                   console.log(`💾 Conversation ID salvo no deal (auto-reparo)`);
                 }
-              } else {
-                console.log(`⚠️ Contato ${clientContactId} não tem conversas abertas no Chatwoot`);
-              }
-            } catch (convError: any) {
-              console.warn(`❌ Erro ao buscar conversas do contato:`, convError.message);
-            }
           } else {
-            console.log(`⚠️ Cliente não tem chatwoot_contact_id, sincronize o cliente primeiro`);
+            console.log(`⚠️ Contato ${clientContactId} não tem conversas abertas no Chat Tork`);
+          }
+        } catch (convError: any) {
+          console.warn(`❌ Erro ao buscar conversas do contato:`, convError.message);
+        }
+      } else {
+        console.log(`⚠️ Cliente não tem chatwoot_contact_id, sincronize o cliente primeiro`);
           }
           
-          // Se ainda não tem conversa após recuperação, retornar erro informativo
-          if (!conversationId) {
-            return new Response(
-              JSON.stringify({ 
-                success: false, 
-                message: 'Nenhuma conversa ativa encontrada para este cliente no Chatwoot',
-                hint: 'Inicie uma conversa com o cliente no Chatwoot ou sincronize o negócio novamente.'
-              }),
-              { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
+        // Se ainda não tem conversa após recuperação, retornar erro informativo
+        if (!conversationId) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: 'Nenhuma conversa ativa encontrada para este cliente no Chat Tork',
+              hint: 'Inicie uma conversa com o cliente no Chat Tork ou sincronize o negócio novamente.'
+            }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         }
 
         // 3. Buscar TODAS as etapas do usuário para ter a lista completa de labels
@@ -428,7 +428,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ 
               success: true, 
-              message: 'Etapa atualizada no Chatwoot',
+              message: 'Etapa atualizada no Chat Tork',
               previous_labels: currentLabels,
               removed_labels: labelsToRemove,
               preserved_labels: preservedLabels,
@@ -441,9 +441,10 @@ serve(async (req) => {
         } catch (error: any) {
           console.error('❌ Falha ao atualizar etiquetas:', error);
           return new Response(
-            JSON.stringify({ success: false, message: `Erro no Chatwoot: ${error.message}` }),
+            JSON.stringify({ success: false, message: `Erro no Chat Tork: ${error.message}` }),
             { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
         }
       }
 
@@ -877,29 +878,26 @@ serve(async (req) => {
           }
         }
 
-        // Update contact custom attributes with deal info
+        // Create audit note for deal creation/update
         if (chatwootContactId) {
           try {
-            // Get app URL for direct CRM link
-            const appUrl = Deno.env.get('APP_URL') || 'https://jaouwhckqqnaxqyfvgyq.lovableproject.com';
+            // Format value as BRL currency
+            const valorFormatado = new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL'
+            }).format(deal.value || 0);
+            
+            const noteContent = `🚀 [CRM] Negócio Atualizado\n📋 Título: ${deal.title}\n💰 Valor: ${valorFormatado}\n📊 Etapa: ${deal.stage?.name || 'Desconhecido'}`;
             
             await chatwootRequest(
               config,
-              `/contacts/${chatwootContactId}`,
-              'PUT',
-              {
-                custom_attributes: {
-                  crm_titulo_negocio: deal.title,
-                  crm_valor_negocio: deal.value || 0,
-                  crm_etapa_atual: deal.stage?.name || 'Desconhecido',
-                  crm_link_direto: `${appUrl}/dashboard/crm`,
-                  last_sync: new Date().toISOString()
-                }
-              }
+              `/contacts/${chatwootContactId}/notes`,
+              'POST',
+              { note: { content: noteContent } }
             );
-            console.log('Chat Tork: Updated contact attributes for:', chatwootContactId);
-          } catch (updateError: any) {
-            console.error('Failed to update contact attributes:', updateError);
+            console.log('Chat Tork: Created audit note for contact:', chatwootContactId);
+          } catch (noteError: any) {
+            console.warn('Failed to create audit note:', noteError.message);
             // Non-fatal, contact was created/found
           }
         }
@@ -909,10 +907,60 @@ serve(async (req) => {
             success: true, 
             chatwoot_contact_id: chatwootContactId,
             conversation_id: conversationId,
-            message: 'Deal attributes synced to Chatwoot' 
+            message: 'Deal audit note created in Chat Tork' 
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      }
+
+      // ========== DELETE DEAL - Create removal audit note ==========
+      case 'delete_deal': {
+        const { deal_title, client_id } = body;
+
+        if (!client_id) {
+          return new Response(
+            JSON.stringify({ success: false, message: 'client_id is required' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get client's chatwoot_contact_id
+        const { data: client } = await supabase
+          .from('clientes')
+          .select('chatwoot_contact_id')
+          .eq('id', client_id)
+          .single();
+
+        if (!client?.chatwoot_contact_id) {
+          return new Response(
+            JSON.stringify({ success: true, message: 'Client not synced to Chat Tork, no note created' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        try {
+          const noteContent = `🗑️ [CRM] Negócio Removido\n📋 Título: ${deal_title || 'Sem título'}`;
+          
+          await chatwootRequest(
+            config,
+            `/contacts/${client.chatwoot_contact_id}/notes`,
+            'POST',
+            { note: { content: noteContent } }
+          );
+          
+          console.log('Chat Tork: Created deletion note for deal:', deal_title);
+          
+          return new Response(
+            JSON.stringify({ success: true, message: 'Deletion note created in Chat Tork' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (noteError: any) {
+          console.warn('Failed to create deletion note:', noteError.message);
+          return new Response(
+            JSON.stringify({ success: false, message: `Failed to create note: ${noteError.message}` }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       default:
