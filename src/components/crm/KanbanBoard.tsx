@@ -10,28 +10,37 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCRMStages, useCRMDeals, CRMStage, CRMDeal } from '@/hooks/useCRMDeals';
 import { KanbanColumn } from './KanbanColumn';
 import { DealCard } from './DealCard';
 import { DealDetailsModal } from './DealDetailsModal';
 import { NewDealModal } from './NewDealModal';
+import { NewStageModal } from './NewStageModal';
+import { StageEditModal } from './StageEditModal';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, Sparkles } from 'lucide-react';
 
 export function KanbanBoard() {
-  const { stages, isLoading: stagesLoading, initializeStages } = useCRMStages();
+  const { stages, isLoading: stagesLoading, initializeStages, reorderStages, deleteStage } = useCRMStages();
   const { deals, isLoading: dealsLoading, moveDeal } = useCRMDeals();
+  
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeType, setActiveType] = useState<'deal' | 'column' | null>(null);
+  
   const [showNewDealModal, setShowNewDealModal] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [selectedDeal, setSelectedDeal] = useState<CRMDeal | null>(null);
+  
+  const [showNewStageModal, setShowNewStageModal] = useState(false);
+  const [editingStage, setEditingStage] = useState<CRMStage | null>(null);
 
+  // Configure sensors with distance constraint for click vs drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // 8px movement = drag, less = click
       },
     })
   );
@@ -47,54 +56,110 @@ export function KanbanBoard() {
   }, [deals, stages]);
 
   const activeDeal = useMemo(() => {
-    if (!activeId) return null;
+    if (!activeId || activeType !== 'deal') return null;
     return deals.find((deal) => deal.id === activeId);
-  }, [activeId, deals]);
+  }, [activeId, activeType, deals]);
+
+  const activeStage = useMemo(() => {
+    if (!activeId || activeType !== 'column') return null;
+    const stageId = activeId.replace('column-', '');
+    return stages.find((stage) => stage.id === stageId);
+  }, [activeId, activeType, stages]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    const { active } = event;
+    const id = active.id as string;
+    
+    if (id.startsWith('column-')) {
+      setActiveType('column');
+      setActiveId(id);
+    } else {
+      setActiveType('deal');
+      setActiveId(id);
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    // Handle drag over for visual feedback
+    // Visual feedback handled by isOver in columns
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
-
-    if (!over) return;
-
-    const dealId = active.id as string;
-    const overId = over.id as string;
-
-    // Find the target stage
-    let targetStageId = overId;
     
-    // If dropped on another deal, get its stage
-    const overDeal = deals.find((d) => d.id === overId);
-    if (overDeal) {
-      targetStageId = overDeal.stage_id;
+    if (!over) {
+      setActiveId(null);
+      setActiveType(null);
+      return;
     }
 
-    // Validate target stage exists
-    const targetStage = stages.find((s) => s.id === targetStageId);
-    if (!targetStage) return;
+    const activeIdStr = active.id as string;
+    const overIdStr = over.id as string;
 
-    const deal = deals.find((d) => d.id === dealId);
-    if (!deal) return;
-
-    // Calculate new position
-    const dealsInTargetStage = dealsByStage[targetStageId] || [];
-    const newPosition = dealsInTargetStage.length;
-
-    if (deal.stage_id !== targetStageId) {
-      moveDeal.mutate({
-        dealId,
-        newStageId: targetStageId,
-        newPosition,
-      });
+    // Handle column reordering
+    if (activeIdStr.startsWith('column-') && overIdStr.startsWith('column-')) {
+      const activeStageId = activeIdStr.replace('column-', '');
+      const overStageId = overIdStr.replace('column-', '');
+      
+      if (activeStageId !== overStageId) {
+        const oldIndex = stages.findIndex(s => s.id === activeStageId);
+        const newIndex = stages.findIndex(s => s.id === overStageId);
+        
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(stages, oldIndex, newIndex);
+          reorderStages.mutate(newOrder.map(s => s.id));
+        }
+      }
+      
+      setActiveId(null);
+      setActiveType(null);
+      return;
     }
+
+    // Handle deal movement
+    if (!activeIdStr.startsWith('column-')) {
+      const dealId = activeIdStr;
+      let targetStageId = overIdStr;
+      
+      // If dropped on another deal, get its stage
+      if (!overIdStr.startsWith('column-')) {
+        const overDeal = deals.find((d) => d.id === overIdStr);
+        if (overDeal) {
+          targetStageId = overDeal.stage_id;
+        }
+      } else {
+        targetStageId = overIdStr.replace('column-', '');
+      }
+
+      // Validate target stage exists
+      const targetStage = stages.find((s) => s.id === targetStageId);
+      if (!targetStage) {
+        setActiveId(null);
+        setActiveType(null);
+        return;
+      }
+
+      const deal = deals.find((d) => d.id === dealId);
+      if (!deal) {
+        setActiveId(null);
+        setActiveType(null);
+        return;
+      }
+
+      // Calculate new position
+      const dealsInTargetStage = dealsByStage[targetStageId] || [];
+      const newPosition = dealsInTargetStage.length;
+
+      if (deal.stage_id !== targetStageId) {
+        moveDeal.mutate({
+          dealId,
+          newStageId: targetStageId,
+          newPosition,
+        });
+      }
+    }
+
+    setActiveId(null);
+    setActiveType(null);
   };
 
   const handleAddDeal = (stageId: string) => {
@@ -104,6 +169,14 @@ export function KanbanBoard() {
 
   const handleDealClick = (deal: CRMDeal) => {
     setSelectedDeal(deal);
+  };
+
+  const handleEditStage = (stage: CRMStage) => {
+    setEditingStage(stage);
+  };
+
+  const handleDeleteStage = (stageId: string) => {
+    deleteStage.mutate(stageId);
   };
 
   if (stagesLoading || dealsLoading) {
@@ -152,27 +225,77 @@ export function KanbanBoard() {
         onDragEnd={handleDragEnd}
       >
         <div className="flex gap-4 overflow-x-auto pb-4 min-h-[calc(100vh-220px)]">
-          {stages.map((stage) => (
-            <KanbanColumn
-              key={stage.id}
-              stage={stage}
-              deals={dealsByStage[stage.id] || []}
-              onAddDeal={() => handleAddDeal(stage.id)}
-              onDealClick={handleDealClick}
-            />
-          ))}
+          <SortableContext
+            items={stages.map(s => `column-${s.id}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {stages.map((stage) => (
+              <KanbanColumn
+                key={stage.id}
+                stage={stage}
+                deals={dealsByStage[stage.id] || []}
+                onAddDeal={() => handleAddDeal(stage.id)}
+                onDealClick={handleDealClick}
+                onEditStage={handleEditStage}
+                onDeleteStage={handleDeleteStage}
+              />
+            ))}
+          </SortableContext>
+
+          {/* New Stage Button */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex-shrink-0 w-80"
+          >
+            <Button
+              variant="ghost"
+              onClick={() => setShowNewStageModal(true)}
+              className="
+                h-24 w-full 
+                border-2 border-dashed border-border/50
+                hover:border-primary/50 hover:bg-primary/5
+                rounded-xl
+                flex flex-col items-center justify-center gap-2
+                text-muted-foreground hover:text-foreground
+                transition-all duration-200
+              "
+            >
+              <Plus className="h-6 w-6" />
+              <span>Nova Etapa</span>
+            </Button>
+          </motion.div>
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={{
+          duration: 250,
+          easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)'
+        }}>
           <AnimatePresence>
             {activeDeal && (
               <motion.div
-                initial={{ scale: 1.05, opacity: 0.8 }}
-                animate={{ scale: 1.05, opacity: 0.9 }}
-                exit={{ scale: 1, opacity: 1 }}
-                className="rotate-3"
+                initial={{ scale: 1.02, opacity: 0.9, rotate: 0 }}
+                animate={{ scale: 1.05, opacity: 0.95, rotate: 3 }}
+                exit={{ scale: 1, opacity: 1, rotate: 0 }}
+                className="shadow-2xl"
               >
                 <DealCard deal={activeDeal} isDragging />
+              </motion.div>
+            )}
+            {activeStage && (
+              <motion.div
+                initial={{ scale: 1.02, opacity: 0.8 }}
+                animate={{ scale: 1.02, opacity: 0.9 }}
+                className="w-80 glass-component rounded-xl p-4"
+                style={{ borderTopColor: activeStage.color, borderTopWidth: '3px' }}
+              >
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: activeStage.color }}
+                  />
+                  <h3 className="font-semibold text-foreground">{activeStage.name}</h3>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -189,6 +312,17 @@ export function KanbanBoard() {
         deal={selectedDeal}
         open={!!selectedDeal}
         onOpenChange={(open) => !open && setSelectedDeal(null)}
+      />
+
+      <NewStageModal
+        open={showNewStageModal}
+        onOpenChange={setShowNewStageModal}
+      />
+
+      <StageEditModal
+        stage={editingStage}
+        open={!!editingStage}
+        onOpenChange={(open) => !open && setEditingStage(null)}
       />
     </>
   );
