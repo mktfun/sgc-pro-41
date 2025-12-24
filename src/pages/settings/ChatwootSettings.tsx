@@ -105,10 +105,14 @@ export default function ChatwootSettings() {
     }
 
     setSyncing(true);
+    const toastId = toast.loading('Iniciando sincronização com Chatwoot...');
+    
     try {
       const { data, error } = await supabase.functions.invoke('chatwoot-sync', {
         body: { action: 'sync_stages' }
       });
+
+      toast.dismiss(toastId);
 
       if (error) throw error;
 
@@ -118,8 +122,9 @@ export default function ChatwootSettings() {
         toast.error(data?.message || 'Erro ao sincronizar');
       }
     } catch (error: any) {
+      toast.dismiss(toastId);
       console.error('Sync error:', error);
-      toast.error('Erro ao sincronizar etiquetas');
+      toast.error('Erro ao sincronizar: ' + (error.message || 'Verifique suas credenciais'));
     } finally {
       setSyncing(false);
     }
