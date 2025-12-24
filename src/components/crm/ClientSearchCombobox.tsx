@@ -110,41 +110,44 @@ export function ClientSearchCombobox({
             />
           </div>
           <CommandList className="max-h-[300px]">
-            <CommandEmpty className="py-6 text-center text-sm">
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando...
-                </div>
-              ) : (
-                "Nenhum cliente encontrado."
-              )}
-            </CommandEmpty>
-            <CommandGroup>
-              {filteredClients.map((client) => (
-                <CommandItem
-                  key={client.id}
-                  value={client.id}
-                  onSelect={() => handleSelect(client.id)}
-                  className="cursor-pointer"
-                >
-                  <Check
+            {isLoading ? (
+              <div className="py-6 text-center text-sm flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando...
+              </div>
+            ) : filteredClients.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Nenhum cliente encontrado.
+              </div>
+            ) : (
+              <CommandGroup>
+                {filteredClients.map((client) => (
+                  <div
+                    key={client.id}
+                    onClick={() => handleSelect(client.id)}
                     className={cn(
-                      "mr-2 h-4 w-4",
-                      value === client.id ? "opacity-100" : "opacity-0"
+                      "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                      value === client.id && "bg-accent"
                     )}
-                  />
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <span className="font-medium truncate">{client.name}</span>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {client.phone && <span>{client.phone}</span>}
-                      {client.phone && client.email && <span>•</span>}
-                      {client.email && <span className="truncate">{client.email}</span>}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4 shrink-0",
+                        value === client.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="font-medium truncate">{client.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {client.phone && <span>{client.phone}</span>}
+                        {client.phone && client.email && <span>•</span>}
+                        {client.email && <span className="truncate">{client.email}</span>}
+                      </div>
                     </div>
                   </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
