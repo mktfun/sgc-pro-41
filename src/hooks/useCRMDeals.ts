@@ -46,6 +46,19 @@ const DEFAULT_STAGES = [
   { name: 'Perdido', color: '#EF4444', chatwoot_label: 'perdido', position: 5 }
 ];
 
+const PRESET_COLORS = [
+  '#3B82F6', // Blue
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#EF4444', // Red
+  '#8B5CF6', // Violet
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
+];
+
+export { PRESET_COLORS };
+
 export function useCRMStages() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -90,10 +103,122 @@ export function useCRMStages() {
     }
   });
 
+  const createStage = useMutation({
+    mutationFn: async (stage: { name: string; color: string }) => {
+      const currentStages = stagesQuery.data || [];
+      const maxPosition = currentStages.length;
+
+      const { data, error } = await supabase
+        .from('crm_stages')
+        .insert({
+          user_id: user!.id,
+          name: stage.name,
+          color: stage.color,
+          chatwoot_label: stage.name.toLowerCase().replace(/\s+/g, '_'),
+          position: maxPosition
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-stages'] });
+      toast.success('Etapa criada com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao criar etapa');
+      console.error(error);
+    }
+  });
+
+  const updateStage = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<CRMStage> & { id: string }) => {
+      const updateData: any = { ...updates };
+      if (updates.name) {
+        updateData.chatwoot_label = updates.name.toLowerCase().replace(/\s+/g, '_');
+      }
+
+      const { data, error } = await supabase
+        .from('crm_stages')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-stages'] });
+      toast.success('Etapa atualizada!');
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar etapa');
+      console.error(error);
+    }
+  });
+
+  const deleteStage = useMutation({
+    mutationFn: async (stageId: string) => {
+      // Check if stage has deals
+      const { count, error: countError } = await supabase
+        .from('crm_deals')
+        .select('*', { count: 'exact', head: true })
+        .eq('stage_id', stageId);
+
+      if (countError) throw countError;
+
+      if (count && count > 0) {
+        throw new Error(`Existem ${count} negócio(s) nesta etapa. Mova-os para outra etapa primeiro.`);
+      }
+
+      const { error } = await supabase
+        .from('crm_stages')
+        .delete()
+        .eq('id', stageId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-stages'] });
+      toast.success('Etapa removida!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao remover etapa');
+      console.error(error);
+    }
+  });
+
+  const reorderStages = useMutation({
+    mutationFn: async (stageIds: string[]) => {
+      const updates = stageIds.map((id, index) =>
+        supabase
+          .from('crm_stages')
+          .update({ position: index })
+          .eq('id', id)
+      );
+
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['crm-stages'] });
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao reordenar etapas');
+      console.error(error);
+    }
+  });
+
   return {
     stages: stagesQuery.data || [],
     isLoading: stagesQuery.isLoading,
-    initializeStages
+    initializeStages,
+    createStage,
+    updateStage,
+    deleteStage,
+    reorderStages
   };
 }
 
