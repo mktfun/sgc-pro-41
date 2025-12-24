@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, MessageCircle, ExternalLink, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
+import { Save, MessageCircle, ExternalLink, Eye, EyeOff, Loader2, RefreshCw, Wifi } from 'lucide-react';
 
 interface CRMSettings {
   id?: string;
@@ -21,6 +21,7 @@ export default function ChatwootSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [settings, setSettings] = useState<CRMSettings>({
@@ -95,6 +96,37 @@ export default function ChatwootSettings() {
       toast.error('Erro ao salvar configurações');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!settings.chatwoot_url || !settings.chatwoot_api_key || !settings.chatwoot_account_id) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setTesting(true);
+    const toastId = toast.loading('Testando conexão com Chatwoot...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('chatwoot-sync', {
+        body: { action: 'validate' }
+      });
+
+      toast.dismiss(toastId);
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(data.message || 'Conexão estabelecida!');
+      } else {
+        toast.error(data?.message || 'Falha na conexão');
+      }
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      toast.error('Falha na conexão: ' + (error.message || 'Verifique suas credenciais'));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -252,6 +284,19 @@ export default function ChatwootSettings() {
                 <Save className="h-4 w-4 mr-2" />
               )}
               Salvar Configurações
+            </Button>
+
+            <Button 
+              variant="outline" 
+              onClick={handleTestConnection} 
+              disabled={testing || !settings.chatwoot_url || !settings.chatwoot_api_key || !settings.chatwoot_account_id}
+            >
+              {testing ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Wifi className="h-4 w-4 mr-2" />
+              )}
+              Testar Conexão
             </Button>
 
             <Button 
