@@ -12,6 +12,33 @@ interface ChatwootConfig {
   chatwoot_account_id: string;
 }
 
+// Função helper para formatar telefone para E.164 (padrão internacional)
+function formatPhoneToE164(phone: string | null): string | undefined {
+  if (!phone) return undefined;
+  
+  // Remove tudo que não é número
+  const digits = phone.replace(/\D/g, '');
+  
+  // Se já começa com +, assume que está formatado
+  if (phone.startsWith('+')) {
+    return '+' + digits;
+  }
+  
+  // Se tem 10-11 dígitos, assume Brasil (+55)
+  if (digits.length >= 10 && digits.length <= 11) {
+    return `+55${digits}`;
+  }
+  
+  // Se tem 12-13 dígitos, assume que já tem DDI
+  if (digits.length >= 12) {
+    return `+${digits}`;
+  }
+  
+  // Retorna undefined se não conseguir formatar corretamente
+  console.log('Could not format phone to E.164:', phone, '-> digits:', digits.length);
+  return undefined;
+}
+
 async function getChatwootConfig(supabase: any, userId: string): Promise<ChatwootConfig | null> {
   const { data, error } = await supabase
     .from('crm_settings')
@@ -39,6 +66,8 @@ async function chatwootRequest(
   body?: any
 ) {
   const url = `${config.chatwoot_url}/api/v1/accounts/${config.chatwoot_account_id}${endpoint}`;
+  
+  console.log(`Chatwoot ${method} ${endpoint}`);
   
   const response = await fetch(url, {
     method,
@@ -141,6 +170,47 @@ serve(async (req) => {
     }
 
     switch (action) {
+      // ========== VALIDATE CONNECTION ==========
+      case 'validate': {
+        console.log('Validating Chatwoot connection...');
+        
+        try {
+          // GET para listar inboxes (endpoint leve que valida autenticação)
+          const inboxes = await chatwootRequest(config, '/inboxes');
+          
+          const inboxCount = inboxes?.payload?.length || inboxes?.length || 0;
+          console.log('Connection valid, found inboxes:', inboxCount);
+          
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: `Chatwoot conectado! ${inboxCount} inbox(es) encontrados.`,
+              inboxes: inboxCount
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error: any) {
+          console.error('Connection validation failed:', error);
+          
+          let message = 'Erro desconhecido';
+          if (error.message?.includes('401')) {
+            message = 'Token de API inválido';
+          } else if (error.message?.includes('404')) {
+            message = 'URL ou Account ID incorretos';
+          } else if (error.message?.includes('fetch') || error.message?.includes('Failed')) {
+            message = 'Não foi possível conectar à URL informada';
+          } else {
+            message = error.message;
+          }
+          
+          return new Response(
+            JSON.stringify({ success: false, message }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+
+      // ========== UPDATE DEAL STAGE ==========
       case 'update_deal_stage': {
         const { deal_id, new_stage_id, sync_token } = body;
 
@@ -192,6 +262,7 @@ serve(async (req) => {
         );
       }
 
+      // ========== UPSERT CONTACT ==========
       case 'upsert_contact': {
         const { client_id } = body;
 
@@ -239,15 +310,16 @@ serve(async (req) => {
             chatwootContactId = searchResult.payload[0].id;
             console.log('Found existing Chatwoot contact:', chatwootContactId);
           } else {
-            // Create new contact
+            // Create new contact with E.164 formatted phone
+            const formattedPhone = formatPhoneToE164(client.phone);
             const newContact = await chatwootRequest(
               config,
               '/contacts',
               'POST',
               {
                 name: client.name,
-                email: client.email,
-                phone_number: client.phone?.replace(/\D/g, ''),
+                email: client.email || undefined,
+                phone_number: formattedPhone,
               }
             );
             chatwootContactId = newContact.payload.contact.id;
@@ -279,6 +351,7 @@ serve(async (req) => {
         }
       }
 
+      // ========== SYNC STAGES (LABELS) ==========
       case 'sync_stages': {
         // Buscar todas as etapas do usuário
         const { data: stages, error: stagesError } = await supabase
@@ -305,8 +378,10 @@ serve(async (req) => {
           const labelTitle = stage.chatwoot_label || stage.name.toLowerCase().replace(/\s+/g, '_');
           const labelColor = stage.color?.replace('#', '') || '3B82F6';
           
+          console.log('Creating label:', labelTitle, 'color:', labelColor);
+          
           try {
-            await chatwootRequest(
+            const response = await chatwootRequest(
               config,
               '/labels',
               'POST',
@@ -317,7 +392,7 @@ serve(async (req) => {
               }
             );
             synced++;
-            console.log(`Created label: ${stage.name} -> ${labelTitle}`);
+            console.log(`Created label: ${stage.name} -> ${labelTitle}`, 'Response:', JSON.stringify(response));
           } catch (error: any) {
             // Ignorar erro 422 (label já existe)
             if (error.message?.includes('422')) {
@@ -345,6 +420,7 @@ serve(async (req) => {
         );
       }
 
+      // ========== SYNC DEAL ATTRIBUTES ==========
       case 'sync_deal_attributes': {
         const { deal_id } = body;
 
@@ -415,8 +491,11 @@ serve(async (req) => {
               }
             }
 
-            // Create new contact if not found
+            // Create new contact if not found - USE E.164 FORMAT
             if (!chatwootContactId) {
+              const formattedPhone = formatPhoneToE164(client.phone);
+              console.log('Creating contact with phone:', formattedPhone);
+              
               const newContact = await chatwootRequest(
                 config,
                 '/contacts',
@@ -424,7 +503,7 @@ serve(async (req) => {
                 {
                   name: client.name,
                   email: client.email || undefined,
-                  phone_number: client.phone?.replace(/\D/g, '') || undefined,
+                  phone_number: formattedPhone,
                   custom_attributes: {
                     source: 'crm_sync',
                     synced_at: new Date().toISOString()
@@ -458,6 +537,71 @@ serve(async (req) => {
           }
         }
 
+        // Buscar/criar conversa para aplicar etiqueta
+        let conversationId = null;
+        
+        if (chatwootContactId && deal.stage?.chatwoot_label) {
+          // Buscar conversas do contato
+          try {
+            const conversations = await chatwootRequest(
+              config,
+              `/contacts/${chatwootContactId}/conversations`
+            );
+            
+            if (conversations.payload?.length > 0) {
+              // Usar a primeira conversa aberta ou a mais recente
+              conversationId = conversations.payload[0].id;
+              console.log('Found existing conversation:', conversationId);
+            }
+          } catch (convError) {
+            console.log('No conversations found for contact');
+          }
+
+          // Se não tem conversa, criar uma nova
+          if (!conversationId) {
+            try {
+              // Buscar o primeiro inbox disponível
+              const inboxes = await chatwootRequest(config, '/inboxes');
+              const inboxId = inboxes.payload?.[0]?.id || inboxes?.[0]?.id;
+              
+              if (inboxId) {
+                console.log('Creating new conversation with inbox:', inboxId);
+                const newConversation = await chatwootRequest(
+                  config,
+                  '/conversations',
+                  'POST',
+                  {
+                    inbox_id: inboxId,
+                    contact_id: chatwootContactId,
+                    status: 'open'
+                  }
+                );
+                conversationId = newConversation.id;
+                console.log('Created new conversation:', conversationId);
+              } else {
+                console.warn('No inbox available to create conversation');
+              }
+            } catch (createConvError: any) {
+              console.warn('Could not create conversation:', createConvError.message);
+            }
+          }
+
+          // Aplicar etiqueta da etapa na conversa
+          if (conversationId && deal.stage?.chatwoot_label) {
+            try {
+              await chatwootRequest(
+                config,
+                `/conversations/${conversationId}/labels`,
+                'POST',
+                { labels: [deal.stage.chatwoot_label] }
+              );
+              console.log('Applied stage label to conversation:', deal.stage.chatwoot_label);
+            } catch (labelError: any) {
+              console.warn('Could not apply label:', labelError.message);
+            }
+          }
+        }
+
         // Update contact custom attributes with deal info
         if (chatwootContactId) {
           try {
@@ -486,6 +630,7 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             chatwoot_contact_id: chatwootContactId,
+            conversation_id: conversationId,
             message: 'Deal attributes synced to Chatwoot' 
           }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
