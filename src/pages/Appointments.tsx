@@ -6,7 +6,6 @@ import { AppointmentModal } from '@/components/appointments/AppointmentModal';
 import { AppointmentDetailsModal } from '@/components/appointments/AppointmentDetailsModal';
 import { AppointmentsDashboard } from '@/components/appointments/AppointmentsDashboard';
 import { StatsBar } from '@/components/appointments/StatsBar';
-import { ExportAppointmentsModal } from '@/components/appointments/ExportAppointmentsModal';
 import { AppCard } from '@/components/ui/app-card';
 import { useAppointments } from '@/hooks/useAppData';
 import { useSupabaseAppointments } from '@/hooks/useSupabaseAppointments';
@@ -250,9 +249,7 @@ export default function Appointments() {
             >
               Agenda
             </ToggleGroupItem>
-            </ToggleGroup>
-
-          <ExportAppointmentsModal />
+          </ToggleGroup>
 
           <Button onClick={handleNovoAgendamento} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />

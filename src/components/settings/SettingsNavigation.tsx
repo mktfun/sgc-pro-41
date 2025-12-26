@@ -1,6 +1,6 @@
 
 import { NavLink } from 'react-router-dom';
-import { User, Building, Users, Shield, CreditCard, Tag, MessageCircle } from 'lucide-react';
+import { User, Building, Users, Shield, CreditCard, Tag } from 'lucide-react';
 import { AppCard } from '@/components/ui/app-card';
 
 const navItems = [
@@ -39,12 +39,6 @@ const navItems = [
     path: '/dashboard/settings/transactions',
     icon: CreditCard,
     description: 'Tipos de operações'
-  },
-  {
-    name: 'Chat Tork',
-    path: '/dashboard/settings/chat-tork',
-    icon: MessageCircle,
-    description: 'Integração CRM'
   }
 ];
 

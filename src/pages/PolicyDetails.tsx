@@ -1,7 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Download, FileText, Upload, Calendar, DollarSign, Building2, User, Phone, Mail, MapPin, Edit, Calculator, ArrowRight, Ban, RotateCcw } from 'lucide-react';
-import { formatDate } from '@/utils/dateUtils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -315,13 +314,13 @@ export default function PolicyDetails() {
                   <div>
                     <p className="text-sm text-slate-400">Data de Início</p>
                     <p className="font-medium text-white">
-                      {policy.startDate ? formatDate(policy.startDate) : '-'}
+                      {policy.startDate ? new Date(policy.startDate).toLocaleDateString('pt-BR') : '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-400">Data de Vencimento</p>
                     <p className="font-medium text-white">
-                      {formatDate(policy.expirationDate)}
+                      {new Date(policy.expirationDate).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>

@@ -14,7 +14,6 @@ import { PaginationControls } from '@/components/ui/PaginationControls';
 import { ClientRowCard } from '@/components/clients/ClientRowCard';
 import { NewClientModal } from '@/components/clients/NewClientModal';
 import { ClientImportModal } from '@/components/clients/ClientImportModal';
-import { ExportClientsModal } from '@/components/clients/ExportClientsModal';
 
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { DeduplicationSection } from '@/components/clients/DeduplicationSection';
@@ -140,7 +139,6 @@ export default function Clients() {
               onChange={(e) => setLocalSearchTerm(e.target.value)}
             />
           </div>
-          <ExportClientsModal disabled={isLoading} />
           <Button
             onClick={() => setIsImportModalOpen(true)}
             variant="outline"

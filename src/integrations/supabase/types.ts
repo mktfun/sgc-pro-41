@@ -351,8 +351,6 @@ export type Database = {
           address: string | null
           birth_date: string | null
           cep: string | null
-          chatwoot_contact_id: number | null
-          chatwoot_synced_at: string | null
           city: string | null
           complement: string | null
           cpf_cnpj: string | null
@@ -375,8 +373,6 @@ export type Database = {
           address?: string | null
           birth_date?: string | null
           cep?: string | null
-          chatwoot_contact_id?: number | null
-          chatwoot_synced_at?: string | null
           city?: string | null
           complement?: string | null
           cpf_cnpj?: string | null
@@ -399,8 +395,6 @@ export type Database = {
           address?: string | null
           birth_date?: string | null
           cep?: string | null
-          chatwoot_contact_id?: number | null
-          chatwoot_synced_at?: string | null
           city?: string | null
           complement?: string | null
           cpf_cnpj?: string | null
@@ -529,142 +523,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      crm_deals: {
-        Row: {
-          chatwoot_conversation_id: number | null
-          client_id: string | null
-          created_at: string
-          expected_close_date: string | null
-          id: string
-          last_sync_source: string | null
-          notes: string | null
-          position: number
-          stage_id: string
-          sync_token: string | null
-          title: string
-          updated_at: string
-          user_id: string
-          value: number | null
-        }
-        Insert: {
-          chatwoot_conversation_id?: number | null
-          client_id?: string | null
-          created_at?: string
-          expected_close_date?: string | null
-          id?: string
-          last_sync_source?: string | null
-          notes?: string | null
-          position?: number
-          stage_id: string
-          sync_token?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-          value?: number | null
-        }
-        Update: {
-          chatwoot_conversation_id?: number | null
-          client_id?: string | null
-          created_at?: string
-          expected_close_date?: string | null
-          id?: string
-          last_sync_source?: string | null
-          notes?: string | null
-          position?: number
-          stage_id?: string
-          sync_token?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-          value?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_deals_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_stage_id_fkey"
-            columns: ["stage_id"]
-            isOneToOne: false
-            referencedRelation: "crm_stages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_settings: {
-        Row: {
-          chatwoot_account_id: string | null
-          chatwoot_api_key: string | null
-          chatwoot_url: string | null
-          chatwoot_webhook_secret: string | null
-          created_at: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          chatwoot_account_id?: string | null
-          chatwoot_api_key?: string | null
-          chatwoot_url?: string | null
-          chatwoot_webhook_secret?: string | null
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          chatwoot_account_id?: string | null
-          chatwoot_api_key?: string | null
-          chatwoot_url?: string | null
-          chatwoot_webhook_secret?: string | null
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      crm_stages: {
-        Row: {
-          chatwoot_label: string | null
-          color: string
-          created_at: string
-          id: string
-          name: string
-          position: number
-          user_id: string
-        }
-        Insert: {
-          chatwoot_label?: string | null
-          color?: string
-          created_at?: string
-          id?: string
-          name: string
-          position?: number
-          user_id: string
-        }
-        Update: {
-          chatwoot_label?: string | null
-          color?: string
-          created_at?: string
-          id?: string
-          name?: string
-          position?: number
-          user_id?: string
-        }
-        Relationships: []
       }
       daily_metrics: {
         Row: {
@@ -1720,8 +1578,6 @@ export type Database = {
           address: string | null
           birth_date: string | null
           cep: string | null
-          chatwoot_contact_id: number | null
-          chatwoot_synced_at: string | null
           city: string | null
           complement: string | null
           cpf_cnpj: string | null

@@ -12,7 +12,6 @@ export interface TransactionFilters {
   dateRange?: DateRange;
   clientId?: string | null;
   nature?: 'receita' | 'despesa';
-  sourceFilter?: 'all' | 'automatic' | 'manual';
 }
 
 interface TransactionMetrics {
@@ -48,7 +47,7 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // 🚀 QUERY PRINCIPAL: Busca transações + métricas
+  // 🚀 ÚNICA QUERY: Usa RPC para buscar transações + métricas (sem conversão de timezone)
   const { data, isLoading, error } = useQuery({
     queryKey: ['transactions-paginated', user?.id, filters],
     queryFn: async () => {
@@ -65,7 +64,7 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         };
       }
 
-      // 📅 CONVERTER DATAS PARA STRING (yyyy-MM-dd)
+      // 📅 CONVERTER DATAS PARA STRING (yyyy-MM-dd) - Backend faz o resto
       const startDate = filters.dateRange?.from 
         ? format(filters.dateRange.from, 'yyyy-MM-dd') 
         : format(new Date(), 'yyyy-MM-01');
@@ -73,7 +72,7 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         ? format(filters.dateRange.to, 'yyyy-MM-dd') 
         : format(new Date(), 'yyyy-MM-dd');
 
-      // 🎯 CHAMADA À RPC
+      // 🎯 CHAMADA À RPC (Backend faz comparação DATE com DATE)
       const { data: rpcData, error: rpcError } = await supabase.rpc('get_faturamento_data', {
         p_user_id: user.id,
         p_start_date: startDate,
@@ -94,7 +93,7 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
       const typedData = rpcData as unknown as RPCFaturamentoData;
 
       // 🔄 MAPEAR PARA FORMATO TypeScript
-      let formattedTransactions: Transaction[] = (typedData.transactions || []).map((t: any) => ({
+      const formattedTransactions: Transaction[] = (typedData.transactions || []).map((t: any) => ({
         id: t.id,
         typeId: t.type_id,
         description: t.description,
@@ -116,18 +115,9 @@ export function useSupabaseTransactionsPaginated(filters: TransactionFilters): T
         updatedAt: t.updated_at,
       }));
 
-      // 🎯 FILTRO POR ORIGEM (automatic/manual) - aplicado client-side
-      if (filters.sourceFilter === 'automatic') {
-        formattedTransactions = formattedTransactions.filter(t => t.policyId !== null);
-      } else if (filters.sourceFilter === 'manual') {
-        formattedTransactions = formattedTransactions.filter(t => t.policyId === null);
-      }
-
       return {
         transactions: formattedTransactions,
-        totalCount: filters.sourceFilter && filters.sourceFilter !== 'all' 
-          ? formattedTransactions.length 
-          : (typedData.totalCount || 0),
+        totalCount: typedData.totalCount || 0,
         metrics: {
           totalGanhos: parseFloat(String(typedData.metrics?.totalGanhos || 0)),
           totalPerdas: parseFloat(String(typedData.metrics?.totalPerdas || 0)),
