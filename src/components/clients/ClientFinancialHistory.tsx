@@ -1,15 +1,30 @@
 import { AppCard } from '@/components/ui/app-card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign } from 'lucide-react';
-import { Transaction, TransactionType } from '@/types';
+import { Transaction, TransactionType, Policy } from '@/types';
 import { Link } from 'react-router-dom';
+import { getTransactionDisplayTitle, buildTransactionDisplayData } from '@/utils/transactionDisplayHelper';
 
 interface ClientFinancialHistoryProps {
   transactions: Transaction[];
   transactionTypes: TransactionType[];
+  policies?: Policy[];
+  clientName?: string;
 }
 
-export function ClientFinancialHistory({ transactions, transactionTypes }: ClientFinancialHistoryProps) {
+export function ClientFinancialHistory({ transactions, transactionTypes, policies = [], clientName }: ClientFinancialHistoryProps) {
+  // Função auxiliar para obter título com fallback
+  const getDisplayTitle = (transaction: Transaction) => {
+    const policy = policies.find(p => p.id === transaction.policyId);
+    return getTransactionDisplayTitle(
+      buildTransactionDisplayData(
+        transaction, 
+        policy, 
+        clientName ? { name: clientName } : null
+      )
+    );
+  };
+
   return (
     <AppCard className="p-6">
       <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -35,6 +50,7 @@ export function ClientFinancialHistory({ transactions, transactionTypes }: Clien
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .map(transaction => {
               const transactionType = transactionTypes.find(t => t.id === transaction.typeId);
+              const displayTitle = getDisplayTitle(transaction);
               return (
                 <Link
                   to={`/dashboard/faturamento?client=${transaction.clientId}`}
@@ -42,7 +58,12 @@ export function ClientFinancialHistory({ transactions, transactionTypes }: Clien
                   className="block border border-slate-700 rounded-lg p-4 bg-slate-800/50 hover:bg-slate-800/80 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-white">{transaction.description}</h4>
+                    <h4 
+                      className="font-semibold text-white max-w-[250px] truncate"
+                      title={displayTitle}
+                    >
+                      {displayTitle}
+                    </h4>
                     <Badge variant={transaction.status === 'REALIZADO' ? 'default' : 'outline'}>
                       {transaction.status}
                     </Badge>

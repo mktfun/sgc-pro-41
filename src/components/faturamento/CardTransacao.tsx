@@ -1,4 +1,3 @@
-
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Check, DollarSign, ExternalLink } from 'lucide-react';
 import { Transaction } from '@/types';
 import { useTransactionTypes, useClients, usePolicies, useCompanies } from '@/hooks/useAppData';
 import { useNavigate } from 'react-router-dom';
+import { getTransactionDisplayTitle, buildTransactionDisplayData } from '@/utils/transactionDisplayHelper';
 
 interface CardTransacaoProps {
   transaction: Transaction;
@@ -52,6 +52,11 @@ export function CardTransacao({ transaction, onMarkAsRealized }: CardTransacaoPr
 
   const transactionType = getTransactionType();
   const associatedData = getAssociatedData();
+  
+  // Título com fallback inteligente
+  const displayTitle = getTransactionDisplayTitle(
+    buildTransactionDisplayData(transaction, associatedData.policy, associatedData.client)
+  );
 
   return (
     <Card className="p-6">
@@ -62,7 +67,12 @@ export function CardTransacao({ transaction, onMarkAsRealized }: CardTransacaoPr
               <DollarSign className={`w-4 h-4 ${transactionType.nature === 'GANHO' ? 'text-green-600' : 'text-red-600'}`} />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">{transaction.description}</h3>
+              <h3 
+                className="font-semibold text-gray-900 max-w-[250px] truncate"
+                title={displayTitle}
+              >
+                {displayTitle}
+              </h3>
               <p className="text-sm text-gray-600">{transactionType.name}</p>
             </div>
             <Badge 
