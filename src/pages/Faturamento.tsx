@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/types';
 import { DateRange } from 'react-day-picker';
 import { getCurrentMonthRange } from '@/utils/dateUtils';
+import { getTransactionDisplayTitle, buildTransactionDisplayData } from '@/utils/transactionDisplayHelper';
 
 export default function Faturamento() {
   usePageTitle('Faturamento');
@@ -354,8 +355,11 @@ export default function Faturamento() {
                       >
                         <TableCell className="font-medium text-slate-200">
                           <div className="flex flex-col">
-                            <span className="font-bold group-hover:text-white transition-colors">
-                              {transaction.description}
+                            <span 
+                              className="font-bold group-hover:text-white transition-colors max-w-[300px] truncate inline-block"
+                              title={getTransactionDisplayTitle(buildTransactionDisplayData(transaction, policy, client))}
+                            >
+                              {getTransactionDisplayTitle(buildTransactionDisplayData(transaction, policy, client))}
                             </span>
                             
                             <div className="text-xs text-slate-400 space-x-2 mt-1 flex items-center gap-2">

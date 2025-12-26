@@ -1,13 +1,13 @@
-
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, History } from 'lucide-react';
 import { Transaction } from '@/types';
-import { useTransactionTypes } from '@/hooks/useAppData';
+import { useTransactionTypes, useClients, usePolicies } from '@/hooks/useAppData';
 import { ModalBaixaParcial } from '@/components/faturamento/ModalBaixaParcial';
 import { HistoricoPagamentos } from '@/components/faturamento/HistoricoPagamentos';
 import { useState } from 'react';
+import { getTransactionDisplayTitle, buildTransactionDisplayData } from '@/utils/transactionDisplayHelper';
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -16,7 +16,14 @@ interface TransactionCardProps {
 
 export function TransactionCard({ transaction, onMarkAsRealized }: TransactionCardProps) {
   const { transactionTypes } = useTransactionTypes();
+  const { clients } = useClients();
+  const { policies } = usePolicies();
   const [showHistory, setShowHistory] = useState(false);
+
+  // Dados associados para fallback inteligente
+  const client = clients.find(c => c.id === transaction.clientId);
+  const policy = policies.find(p => p.id === transaction.policyId);
+  const displayTitle = getTransactionDisplayTitle(buildTransactionDisplayData(transaction, policy, client));
   
   const getStatusBadge = (status: Transaction['status']) => {
     switch (status) {
@@ -68,7 +75,12 @@ export function TransactionCard({ transaction, onMarkAsRealized }: TransactionCa
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-medium text-white">{transaction.description}</h3>
+            <h3 
+              className="font-medium text-white max-w-[250px] truncate"
+              title={displayTitle}
+            >
+              {displayTitle}
+            </h3>
             {getStatusBadge(transaction.status)}
           </div>
           
